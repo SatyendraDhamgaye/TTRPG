@@ -5,7 +5,6 @@ import { MapCanvasComponent } from './canvas/map-canvas/map-canvas';
   selector: 'app-root',
   standalone: true,
   imports: [MapCanvasComponent],
-  templateUrl: './app.html',
-  styleUrls: ['./app.scss'],
+  template: `<app-map-canvas></app-map-canvas>`,
 })
-export class App {}
+export class AppComponent {}
