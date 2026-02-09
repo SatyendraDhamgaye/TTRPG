@@ -14,6 +14,15 @@
     <div class="form-section" *ngIf="currentStep === 0">
       <h3>Basic Information</h3>
       <div class="form-field">
+        <label for="ruleset">Ruleset:</label>
+        <select id="ruleset" formControlName="ruleset">
+          <option value="2014">D&D 5e (2014)</option>
+          <option value="2024">D&D 5e (2024)</option>
+        </select>
+        <small class="helper-text">Active ruleset: {{ rulesetLabel }}</small>
+      </div>
+
+      <div class="form-field">
         <label for="playerName">Player Name:</label>
         <input id="playerName" type="text" formControlName="playerName">
         <div *ngIf="isPlayerNameInvalidAndTouched" class="error-message">
@@ -102,25 +111,38 @@
     <div class="form-section" *ngIf="currentStep === 3">
       <h3>Ability Scores</h3>
 
+      <div class="form-field">
+        <label for="abilityGenerationMethod">Generation Method:</label>
+        <select id="abilityGenerationMethod" formControlName="abilityGenerationMethod">
+          <option value="standardArray">Standard Array (15, 14, 13, 12, 10, 8)</option>
+          <option value="pointBuy">Point Buy (27 points)</option>
+          <option value="manual">Manual (1-20)</option>
+        </select>
+        <small class="helper-text" *ngIf="abilityGenerationMethod === 'pointBuy'">
+          Point Buy: {{ pointBuySpent }}/{{ pointBuyBudget }} used ({{ pointBuyRemaining }} remaining)
+        </small>
+        <button type="button" class="secondary-action" *ngIf="abilityGenerationMethod === 'standardArray'" (click)="applyStandardArrayPreset()">
+          Auto-fill Standard Array
+        </button>
+      </div>
+
       <div class="ability-scores-grid">
-        <div class="ability-score-field" *ngFor="let ability of [
-          'strength','dexterity','constitution','intelligence','wisdom','charisma'
-        ]">
+        <div class="ability-score-field" *ngFor="let ability of abilities">
           <label [for]="ability">{{ ability | titlecase }}:</label>
-          <input [id]="ability" type="number" [formControlName]="ability">
+          <input [id]="ability" type="number" [formControlName]="ability" [min]="getAbilityMin()" [max]="getAbilityMax()">
           <span class="ability-modifier">
             Modifier: {{ getAbilityModifier(characterForm.get(ability)?.value) }}
           </span>
         </div>
       </div>
 
-      <div *ngFor="let ability of [
-        'strength','dexterity','constitution','intelligence','wisdom','charisma'
-      ]">
+      <div *ngFor="let ability of abilities">
         <div *ngIf="characterForm.get(ability)?.invalid && characterForm.get(ability)?.touched" class="error-message">
-          {{ ability | titlecase }} must be between 1 and 20.
+          {{ ability | titlecase }} must be between {{ getAbilityMin() }} and {{ getAbilityMax() }}.
         </div>
       </div>
+
+      <div *ngIf="abilityMethodError" class="error-message">{{ abilityMethodError }}</div>
     </div>
 
     <!-- Actions -->

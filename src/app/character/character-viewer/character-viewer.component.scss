@@ -1,11 +1,13 @@
 .character-viewer-container {
   max-width: 900px;
-  margin: 20px auto;
-  padding: 20px;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  background-color: #fff;
+  margin: 24px auto;
+  padding: 24px;
+  border: 1px solid var(--border-soft);
+  border-radius: 14px;
+  box-shadow: var(--shadow-soft);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.58), rgba(255, 255, 255, 0.58)),
+    var(--color-surface);
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -13,31 +15,34 @@
 
 h2 {
   text-align: center;
-  color: #333;
+  color: var(--color-primary);
   margin-bottom: 20px;
+  text-transform: uppercase;
 }
 
 .no-characters-message {
   text-align: center;
   padding: 30px;
-  border: 1px dashed #ddd;
-  border-radius: 5px;
-  background-color: #f0f0f0;
+  border: 1px dashed #cdbba1;
+  border-radius: 8px;
+  background-color: rgba(244, 239, 230, 0.8);
 }
 
 .no-characters-message button {
   padding: 8px 15px;
   margin-left: 10px;
-  background-color: #007bff;
+  background-color: var(--color-link);
   color: white;
   border: none;
-  border-radius: 4px;
+  border-radius: 8px;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+  font-weight: 600;
 }
 
 .no-characters-message button:hover {
-  background-color: #0056b3;
+  background-color: #233f64;
+  transform: translateY(-1px);
 }
 
 .character-list-section {
@@ -46,9 +51,9 @@ h2 {
 }
 
 .character-list-section h3 {
-  color: #555;
+  color: var(--color-link);
   margin-bottom: 15px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid #d5c4aa;
   padding-bottom: 10px;
 }
 
@@ -57,19 +62,20 @@ h2 {
   list-style: none;
   padding: 0;
   margin: 0;
-  border: 1px solid #ddd;
-  border-radius: 5px;
-  max-height: 400px; /* Limit height for scrollability */
+  border: 1px solid #d8cdb9;
+  border-radius: 8px;
+  max-height: 420px;
   overflow-y: auto;
+  background: rgba(255, 255, 255, 0.6);
 }
 
 .character-list li {
   padding: 12px 15px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid #e7dcc9;
   cursor: pointer;
   transition: background-color 0.2s ease, transform 0.1s ease;
-  font-weight: 500;
-  color: #444;
+  font-weight: 600;
+  color: #4a2f2f;
 }
 
 .character-list li:last-child {
@@ -77,34 +83,34 @@ h2 {
 }
 
 .character-list li:hover {
-  background-color: #e9f7ef;
+  background-color: #f6efdf;
   transform: translateX(3px);
 }
 
 .character-list li.selected {
-  background-color: #d4edda;
+  background-color: #f1e6ce;
   font-weight: bold;
-  color: #28a745;
-  border-left: 3px solid #28a745;
+  color: var(--color-primary);
+  border-left: 3px solid var(--color-accent);
 }
 
 .character-details-card {
   flex: 2;
-  border: 1px solid #c3e6cb;
-  border-radius: 8px;
+  border: 1px solid #d8cdb9;
+  border-radius: 12px;
   padding: 20px;
-  background-color: #e9f7ef;
+  background: #f6f2e8;
 }
 
 .character-details-card h3 {
-  color: #28a745;
+  color: var(--color-primary);
   margin-bottom: 15px;
-  border-bottom: 1px solid #b3dfc6;
+  border-bottom: 1px solid #dccfb9;
   padding-bottom: 10px;
 }
 
 .character-details-card h4 {
-  color: #388e3c;
+  color: var(--color-link);
   margin-top: 20px;
   margin-bottom: 10px;
 }
@@ -122,10 +128,10 @@ h2 {
 }
 
 .ability-scores-display p {
-  background-color: #f0fdf4;
+  background-color: rgba(255, 255, 255, 0.65);
   padding: 8px 12px;
-  border-radius: 4px;
-  border: 1px solid #c3e6cb;
+  border-radius: 8px;
+  border: 1px solid #dccfb9;
 }
 
 .character-actions {
@@ -138,26 +144,54 @@ h2 {
 .character-actions button {
   padding: 10px 20px;
   font-size: 0.95rem;
-  border-radius: 5px;
+  border-radius: 8px;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: background-color 0.2s ease, transform 0.2s ease;
   border: none;
+  font-weight: 600;
 }
 
 .character-actions button:not(.delete-button) {
-  background-color: #007bff;
+  background-color: var(--color-link);
   color: white;
 }
 
 .character-actions button:not(.delete-button):hover {
-  background-color: #0056b3;
+  background-color: #233f64;
+  transform: translateY(-1px);
 }
 
 .character-actions .delete-button {
-  background-color: #dc3545;
+  background-color: var(--color-danger);
   color: white;
 }
 
 .character-actions .delete-button:hover {
-  background-color: #c82333;
+  background-color: #a53025;
+  transform: translateY(-1px);
+}
+
+@media (max-width: 900px) {
+  .character-viewer-container {
+    margin: 14px;
+    max-width: none;
+    padding: 16px;
+  }
+
+  .character-list-section {
+    flex-direction: column;
+  }
+
+  .ability-scores-display {
+    grid-template-columns: 1fr;
+  }
+
+  .character-actions {
+    justify-content: stretch;
+  }
+
+  .character-actions button {
+    flex: 1;
+    min-height: 44px;
+  }
 }

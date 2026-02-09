@@ -11,6 +11,8 @@ export interface Character {
   id: string;
   playerName: string;
   characterName: string;
+  ruleset?: '2014' | '2024';
+  abilityGenerationMethod?: 'standardArray' | 'pointBuy' | 'manual';
   race: string; // Name of the race
   characterClass: string; // Name of the class
   level: number;

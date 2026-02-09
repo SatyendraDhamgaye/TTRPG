@@ -4,6 +4,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators, AbstractContro
 import { CompendiumService } from '../../services/compendium.service';
 import { RaceData, ClassData } from '../../services/compendium.service';
 import { Character, AbilityScores } from '../../models/character.model';
+import { PersistenceService } from '../../services/persistence.service';
 
 @Component({
   selector: 'app-character-creator',
@@ -17,20 +18,30 @@ import { Character, AbilityScores } from '../../models/character.model';
 })
 export class CharacterCreatorComponent implements OnInit {
   characterForm!: FormGroup;
+  readonly abilities: Array<keyof AbilityScores> = ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma'];
+  readonly standardArray: number[] = [15, 14, 13, 12, 10, 8];
   races: RaceData[] = [];
   classes: ClassData[] = [];
   selectedRace: RaceData | undefined;
   selectedClass: ClassData | undefined;
   currentStep: number = 0; // Track the current step
+  abilityMethodError: string = '';
+  private readonly maxStep = 3;
 
-  constructor(private fb: FormBuilder, private compendiumService: CompendiumService) { }
+  constructor(
+    private fb: FormBuilder,
+    private compendiumService: CompendiumService,
+    private persistenceService: PersistenceService
+  ) { }
 
   ngOnInit(): void {
     this.characterForm = this.fb.group({
       playerName: [null, Validators.required],
       characterName: [null, Validators.required],
+      ruleset: ['2014', Validators.required],
       race: [null, Validators.required],
       characterClass: [null, Validators.required],
+      abilityGenerationMethod: ['standardArray', Validators.required],
       strength: [8, [Validators.required, Validators.min(1), Validators.max(20)]],
       dexterity: [8, [Validators.required, Validators.min(1), Validators.max(20)]],
       constitution: [8, [Validators.required, Validators.min(1), Validators.max(20)]],
@@ -39,12 +50,17 @@ export class CharacterCreatorComponent implements OnInit {
       charisma: [8, [Validators.required, Validators.min(1), Validators.max(20)]],
     });
 
+    this.applyStandardArrayPreset();
+    this.restoreDraft();
+
     this.compendiumService.getRaces().subscribe(races => {
       this.races = races;
+      this.syncSelectedRaceFromForm();
     });
 
     this.compendiumService.getClasses().subscribe(classes => {
       this.classes = classes;
+      this.syncSelectedClassFromForm();
     });
 
     this.characterForm.get('race')?.valueChanges.subscribe(raceName => {
@@ -53,6 +69,14 @@ export class CharacterCreatorComponent implements OnInit {
 
     this.characterForm.get('characterClass')?.valueChanges.subscribe(className => {
       this.selectedClass = this.classes.find(cls => cls.name === className);
+    });
+
+    this.characterForm.get('abilityGenerationMethod')?.valueChanges.subscribe(() => {
+      this.abilityMethodError = '';
+    });
+
+    this.characterForm.valueChanges.subscribe(() => {
+      this.saveDraft();
     });
   }
 
@@ -104,32 +128,146 @@ export class CharacterCreatorComponent implements OnInit {
     return modifier >= 0 ? `+${modifier}` : `${modifier}`;
   }
 
+  get rulesetLabel(): string {
+    return this.characterForm.get('ruleset')?.value === '2024' ? 'D&D 5e (2024)' : 'D&D 5e (2014)';
+  }
+
+  get abilityGenerationMethod(): 'standardArray' | 'pointBuy' | 'manual' {
+    return this.characterForm.get('abilityGenerationMethod')?.value;
+  }
+
+  get pointBuyBudget(): number {
+    // 2014 and 2024 both use 27-point buy by default.
+    return 27;
+  }
+
+  get pointBuySpent(): number {
+    return this.abilities.reduce((sum, ability) => {
+      const score = Number(this.characterForm.get(ability)?.value ?? 8);
+      return sum + this.getPointBuyCost(score);
+    }, 0);
+  }
+
+  get pointBuyRemaining(): number {
+    return this.pointBuyBudget - this.pointBuySpent;
+  }
+
+  getPointBuyCost(score: number): number {
+    const costMap: Record<number, number> = {
+      8: 0,
+      9: 1,
+      10: 2,
+      11: 3,
+      12: 4,
+      13: 5,
+      14: 7,
+      15: 9,
+    };
+    return costMap[score] ?? 999;
+  }
+
+  getAbilityMin(): number {
+    return this.abilityGenerationMethod === 'pointBuy' ? 8 : 1;
+  }
+
+  getAbilityMax(): number {
+    return this.abilityGenerationMethod === 'pointBuy' ? 15 : 20;
+  }
+
+  applyStandardArrayPreset(): void {
+    this.abilities.forEach((ability, index) => {
+      this.characterForm.get(ability)?.setValue(this.standardArray[index]);
+    });
+    this.characterForm.get('abilityGenerationMethod')?.setValue('standardArray');
+  }
+
+  private syncSelectedRaceFromForm(): void {
+    const raceName = this.characterForm.get('race')?.value;
+    this.selectedRace = this.races.find((race) => race.name === raceName);
+  }
+
+  private syncSelectedClassFromForm(): void {
+    const className = this.characterForm.get('characterClass')?.value;
+    this.selectedClass = this.classes.find((cls) => cls.name === className);
+  }
+
+  private saveDraft(): void {
+    this.persistenceService.saveCreatorDraft({
+      currentStep: this.currentStep,
+      formValue: this.characterForm.getRawValue()
+    });
+  }
+
+  private restoreDraft(): void {
+    const draft = this.persistenceService.loadCreatorDraft();
+    if (!draft) {
+      return;
+    }
+
+    this.characterForm.patchValue(draft.formValue);
+    this.currentStep = Math.max(0, Math.min(this.maxStep, draft.currentStep));
+  }
+
+  private isAbilityStepInvalid(): boolean {
+    this.abilityMethodError = '';
+
+    const values = this.abilities.map((ability) => Number(this.characterForm.get(ability)?.value));
+    if (values.some((v) => Number.isNaN(v))) {
+      this.abilityMethodError = 'All ability scores must be numbers.';
+      return true;
+    }
+
+    switch (this.abilityGenerationMethod) {
+      case 'standardArray': {
+        const sortedInput = [...values].sort((a, b) => b - a);
+        const sortedStandard = [...this.standardArray].sort((a, b) => b - a);
+        const valid = JSON.stringify(sortedInput) === JSON.stringify(sortedStandard);
+        if (!valid) {
+          this.abilityMethodError = 'Standard Array requires exactly: 15, 14, 13, 12, 10, 8 (each used once).';
+        }
+        return !valid;
+      }
+      case 'pointBuy': {
+        const outOfRange = values.some((v) => v < 8 || v > 15);
+        if (outOfRange) {
+          this.abilityMethodError = 'Point Buy scores must stay between 8 and 15 before bonuses.';
+          return true;
+        }
+        if (this.pointBuySpent > this.pointBuyBudget) {
+          this.abilityMethodError = `Point Buy exceeds budget: spent ${this.pointBuySpent}/${this.pointBuyBudget}.`;
+          return true;
+        }
+        return false;
+      }
+      default:
+        return values.some((v) => v < 1 || v > 20);
+    }
+  }
+
   nextStep(): void {
     // Basic validation for current step before moving next
     switch (this.currentStep) {
       case 0: // Basic Info
-        if (this.isPlayerNameInvalidAndTouched || this.isCharacterNameInvalidAndTouched) {
+        if (this.playerNameControl_?.invalid || this.characterNameControl_?.invalid) {
           this.playerNameControl_?.markAsTouched();
           this.characterNameControl_?.markAsTouched();
           return;
         }
         break;
       case 1: // Race Selection
-        if (this.isRaceInvalidAndTouched) {
+        if (this.raceControl_?.invalid) {
           this.raceControl_?.markAsTouched();
           return;
         }
         break;
       case 2: // Class Selection
-        if (this.isCharacterClassInvalidAndTouched) {
+        if (this.characterClassControl_?.invalid) {
           this.characterClassControl_?.markAsTouched();
           return;
         }
         break;
       case 3: // Ability Scores
-        if (this.isStrengthInvalidAndTouched || this.isDexterityInvalidAndTouched ||
-            this.isConstitutionInvalidAndTouched || this.isIntelligenceInvalidAndTouched ||
-            this.isWisdomInvalidAndTouched || this.isCharismaInvalidAndTouched) {
+        if (this.isAbilityStepInvalid()) {
           this.strengthControl_?.markAsTouched();
           this.dexterityControl_?.markAsTouched();
           this.constitutionControl_?.markAsTouched();
@@ -141,10 +279,12 @@ export class CharacterCreatorComponent implements OnInit {
         break;
     }
     this.currentStep++;
+    this.saveDraft();
   }
 
   previousStep(): void {
     this.currentStep--;
+    this.saveDraft();
   }
 
   saveCharacter(): void {
@@ -164,6 +304,8 @@ export class CharacterCreatorComponent implements OnInit {
         id: this.generateId(),
         playerName: formValue.playerName,
         characterName: formValue.characterName,
+        ruleset: formValue.ruleset,
+        abilityGenerationMethod: formValue.abilityGenerationMethod,
         race: formValue.race,
         characterClass: formValue.characterClass,
         level: 1, // Default to level 1 for now
@@ -194,20 +336,26 @@ export class CharacterCreatorComponent implements OnInit {
         languages: this.selectedRace?.languages || [],
       };
 
-      const characters = JSON.parse(localStorage.getItem('characters') || '[]') as Character[];
-      characters.push(newCharacter);
-      localStorage.setItem('characters', JSON.stringify(characters));
+      this.persistenceService.appendCharacter(newCharacter);
 
       console.log('Character saved successfully!', newCharacter);
       alert('Character saved successfully!');
-      this.characterForm.reset(); // Clear the form after saving
+      this.characterForm.reset();
+      this.characterForm.patchValue({
+        ruleset: '2014',
+        abilityGenerationMethod: 'standardArray'
+      });
+      this.applyStandardArrayPreset();
       this.currentStep = 0; // Reset to first step
       this.selectedRace = undefined;
       this.selectedClass = undefined;
+      this.abilityMethodError = '';
+      this.persistenceService.clearCreatorDraft();
     } else {
       console.log('Form is invalid. Please complete all required fields.');
       alert('Please complete all required fields and ensure ability scores are valid.');
       // Optionally, navigate to the first invalid step
+      this.saveDraft();
     }
   }
 }

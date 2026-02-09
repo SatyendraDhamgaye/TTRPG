@@ -1,30 +1,33 @@
 .character-creator-container {
   max-width: 800px;
-  margin: 20px auto;
-  padding: 20px;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  background-color: #fff;
+  margin: 24px auto;
+  padding: 24px;
+  border: 1px solid var(--border-soft);
+  border-radius: 14px;
+  box-shadow: var(--shadow-soft);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.58), rgba(255, 255, 255, 0.58)),
+    var(--color-surface);
 }
 
 h2 {
   text-align: center;
-  color: #333;
-  margin-bottom: 30px;
+  color: var(--color-primary);
+  margin-bottom: 26px;
+  text-transform: uppercase;
 }
 
 .form-section {
   margin-bottom: 25px;
-  padding: 15px;
-  border: 1px solid #eee;
-  border-radius: 5px;
-  background-color: #f9f9f9;
+  padding: 16px;
+  border: 1px solid var(--border-soft);
+  border-radius: 10px;
+  background-color: rgba(244, 239, 230, 0.7);
 }
 
 .form-section h3 {
-  color: #555;
-  border-bottom: 1px solid #ddd;
+  color: var(--color-link);
+  border-bottom: 1px solid #d5c4aa;
   padding-bottom: 10px;
   margin-bottom: 15px;
 }
@@ -36,42 +39,65 @@ h2 {
 .form-field label {
   display: block;
   margin-bottom: 5px;
-  font-weight: bold;
-  color: #444;
+  font-weight: 600;
+  color: #4a2f2f;
 }
 
 .form-field input[type="text"],
+.form-field input[type="number"],
 .form-field select {
-  width: calc(100% - 20px);
+  width: 100%;
   padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+  border: 1px solid #cdbba1;
+  background: #fffdf8;
   font-size: 1rem;
+  color: var(--color-text);
 }
 
 .form-field input[type="text"]:focus,
+.form-field input[type="number"]:focus,
 .form-field select:focus {
-  border-color: #007bff;
+  border-color: var(--color-link);
   outline: none;
-  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+  box-shadow: 0 0 0 0.2rem rgba(44, 79, 124, 0.2);
 }
 
 .error-message {
-  color: #dc3545;
+  color: var(--color-danger);
   font-size: 0.875em;
   margin-top: 5px;
+}
+
+.helper-text {
+  display: block;
+  margin-top: 6px;
+  color: var(--color-text-muted);
+}
+
+.secondary-action {
+  margin-top: 10px;
+  background: transparent;
+  color: var(--color-link);
+  border: 1px solid #8ea4c2;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.secondary-action:hover {
+  background-color: rgba(44, 79, 124, 0.1);
 }
 
 .race-details {
   margin-top: 20px;
   padding: 15px;
-  background-color: #e9f7ef;
-  border: 1px solid #c3e6cb;
-  border-radius: 5px;
+  background: #f6f2e8;
+  border: 1px solid #d8cdb9;
+  border-radius: 8px;
 }
 
 .race-details h4 {
-  color: #28a745;
+  color: var(--color-success);
   margin-bottom: 10px;
 }
 
@@ -83,33 +109,77 @@ h2 {
 .form-actions {
   display: flex;
   justify-content: space-between;
+  gap: 10px;
   margin-top: 30px;
 }
 
 .form-actions button {
   padding: 10px 20px;
   font-size: 1rem;
-  border-radius: 5px;
+  border-radius: 8px;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+  border: 1px solid transparent;
+  font-weight: 600;
 }
 
 .form-actions button[type="submit"] {
-  background-color: #28a745;
-  color: white;
-  border: none;
+  background: var(--color-success);
+  color: #fff;
 }
 
 .form-actions button[type="submit"]:hover {
-  background-color: #218838;
+  background: #31593f;
+  transform: translateY(-1px);
 }
 
 .form-actions button:not([type="submit"]) {
-  background-color: #007bff;
-  color: white;
-  border: none;
+  background: var(--color-primary);
+  color: #fff;
 }
 
 .form-actions button:not([type="submit"]):hover {
-  background-color: #0056b3;
+  background: var(--color-primary-strong);
+  transform: translateY(-1px);
+}
+
+.ability-scores-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.ability-score-field {
+  padding: 12px;
+  border: 1px solid #dccfb9;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.ability-modifier {
+  display: inline-block;
+  margin-top: 8px;
+  color: var(--color-link);
+  font-weight: 600;
+}
+
+@media (max-width: 900px) {
+  .character-creator-container {
+    margin: 14px;
+    max-width: none;
+    padding: 16px;
+  }
+
+  .ability-scores-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .form-actions {
+    flex-direction: column;
+  }
+
+  .form-actions button {
+    width: 100%;
+    min-height: 44px;
+  }
 }
