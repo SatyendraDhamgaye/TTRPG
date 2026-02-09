@@ -1,0 +1,142 @@
+<div class="character-creator-container">
+  <h2>Create New Character</h2>
+
+  <form [formGroup]="characterForm" (ngSubmit)="saveCharacter()">
+    <!-- Progress Indicator / Stepper (Placeholder for future UI enhancement) -->
+    <!-- <div class="stepper-indicator">
+      <span [class.active]="currentStep === 0">Basic Info</span> >
+      <span [class.active]="currentStep === 1">Race</span> >
+      <span [class.active]="currentStep === 2">Class</span> >
+      <span [class.active]="currentStep === 3">Ability Scores</span>
+    </div> -->
+
+    <!-- Step 1: Basic Information -->
+    <div class="form-section" *ngIf="currentStep === 0">
+      <h3>Basic Information</h3>
+      <div class="form-field">
+        <label for="playerName">Player Name:</label>
+        <input id="playerName" type="text" formControlName="playerName">
+        <div *ngIf="isPlayerNameInvalidAndTouched" class="error-message">
+          Player Name is required.
+        </div>
+      </div>
+
+      <div class="form-field">
+        <label for="characterName">Character Name:</label>
+        <input id="characterName" type="text" formControlName="characterName">
+        <div *ngIf="isCharacterNameInvalidAndTouched" class="error-message">
+          Character Name is required.
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2: Race Selection -->
+    <div class="form-section" *ngIf="currentStep === 1">
+      <h3>Race Selection</h3>
+      <div class="form-field">
+        <label for="race">Choose Race:</label>
+        <select id="race" formControlName="race">
+          <option [ngValue]="null">-- Select a Race --</option>
+          <option *ngFor="let race of races" [value]="race.name">{{ race.name }}</option>
+        </select>
+        <div *ngIf="isRaceInvalidAndTouched" class="error-message">
+          Race is required.
+        </div>
+      </div>
+
+      <div *ngIf="selectedRace" class="race-details">
+        <h4>{{ selectedRace.name }}</h4>
+        <p>{{ selectedRace.description }}</p>
+        <p><strong>Ability Score Increase:</strong>
+          <span *ngFor="let abi of getAbilityIncreases(selectedRace)">
+            {{ abi.key | titlecase }}: +{{ abi.value }}
+          </span>
+        </p>
+        <p><strong>Speed:</strong> {{ selectedRace.speed }} ft.</p>
+        <p><strong>Size:</strong> {{ selectedRace.size }}</p>
+        <p *ngIf="selectedRace.languages.length"><strong>Languages:</strong> {{ selectedRace.languages.join(", ") }}</p>
+        <div *ngIf="selectedRace.traits.length">
+          <p><strong>Traits:</strong></p>
+          <ul>
+            <li *ngFor="let trait of selectedRace.traits">{{ trait.name }}: {{ trait.description }}</li>
+          </ul>
+        </div>
+        <!-- Add more race details as needed -->
+      </div>
+    </div>
+
+    <!-- Step 3: Class Selection -->
+    <div class="form-section" *ngIf="currentStep === 2">
+      <h3>Class Selection</h3>
+      <div class="form-field">
+        <label for="characterClass">Choose Class:</label>
+        <select id="characterClass" formControlName="characterClass">
+          <option [ngValue]="null">-- Select a Class --</option>
+          <option *ngFor="let cls of classes" [value]="cls.name">{{ cls.name }}</option>
+        </select>
+        <div *ngIf="isCharacterClassInvalidAndTouched" class="error-message">
+          Class is required.
+        </div>
+      </div>
+
+      <div *ngIf="selectedClass" class="class-details">
+        <h4>{{ selectedClass.name }}</h4>
+        <p>{{ selectedClass.description }}</p>
+        <p><strong>Hit Die:</strong> d{{ selectedClass.hitDie }}</p>
+        <div *ngIf="getProficiencies(selectedClass).length">
+          <p><strong>Proficiencies:</strong></p>
+          <ul>
+            <li *ngFor="let proficiency of getProficiencies(selectedClass)">{{ proficiency }}</li>
+          </ul>
+        </div>
+        <div *ngIf="selectedClass.startingEquipment.length">
+          <p><strong>Starting Equipment:</strong></p>
+          <ul>
+            <li *ngFor="let item of selectedClass.startingEquipment">{{ item }}</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 4: Ability Scores -->
+    <div class="form-section" *ngIf="currentStep === 3">
+      <h3>Ability Scores</h3>
+
+      <div class="ability-scores-grid">
+        <div class="ability-score-field" *ngFor="let ability of [
+          'strength','dexterity','constitution','intelligence','wisdom','charisma'
+        ]">
+          <label [for]="ability">{{ ability | titlecase }}:</label>
+          <input [id]="ability" type="number" [formControlName]="ability">
+          <span class="ability-modifier">
+            Modifier: {{ getAbilityModifier(characterForm.get(ability)?.value) }}
+          </span>
+        </div>
+      </div>
+
+      <div *ngFor="let ability of [
+        'strength','dexterity','constitution','intelligence','wisdom','charisma'
+      ]">
+        <div *ngIf="characterForm.get(ability)?.invalid && characterForm.get(ability)?.touched" class="error-message">
+          {{ ability | titlecase }} must be between 1 and 20.
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="form-actions">
+      <button type="button" (click)="previousStep()" [disabled]="currentStep === 0">
+        Previous
+      </button>
+
+      <button type="button" (click)="nextStep()" *ngIf="currentStep < 3">
+        Next
+      </button>
+
+      <button type="submit" *ngIf="currentStep === 3">
+        Save Character
+      </button>
+    </div>
+
+  </form>
+</div>

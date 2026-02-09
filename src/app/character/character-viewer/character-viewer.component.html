@@ -1,0 +1,57 @@
+<div class="character-viewer-container">
+  <h2>Your Characters</h2>
+
+  <div *ngIf="characters.length === 0" class="no-characters-message">
+    <p>No characters created yet. <button (click)="createNewCharacter()">Create One Now!</button></p>
+  </div>
+
+  <div *ngIf="characters.length > 0" class="character-list-section">
+    <h3>Select a Character:</h3>
+    <ul class="character-list">
+      <li *ngFor="let char of characters" (click)="viewCharacter(char.id)" [class.selected]="selectedCharacter?.id === char.id">
+        {{ char.characterName }} ({{ char.race }} {{ char.characterClass }})
+      </li>
+    </ul>
+
+    <div *ngIf="selectedCharacter" class="character-details-card">
+      <h3>{{ selectedCharacter.characterName }}</h3>
+      <p><strong>Player:</strong> {{ selectedCharacter.playerName }}</p>
+      <p><strong>Race:</strong> {{ selectedCharacter.race }}</p>
+      <p><strong>Class:</strong> {{ selectedCharacter.characterClass }} (Level {{ selectedCharacter.level }})</p>
+
+      <h4>Ability Scores</h4>
+      <div class="ability-scores-display">
+        <p>STR: {{ selectedCharacter.abilityScores.strength }} ({{ getAbilityModifier(selectedCharacter.abilityScores.strength) }})</p>
+        <p>DEX: {{ selectedCharacter.abilityScores.dexterity }} ({{ getAbilityModifier(selectedCharacter.abilityScores.dexterity) }})</p>
+        <p>CON: {{ selectedCharacter.abilityScores.constitution }} ({{ getAbilityModifier(selectedCharacter.abilityScores.constitution) }})</p>
+        <p>INT: {{ selectedCharacter.abilityScores.intelligence }} ({{ getAbilityModifier(selectedCharacter.abilityScores.intelligence) }})</p>
+        <p>WIS: {{ selectedCharacter.abilityScores.wisdom }} ({{ getAbilityModifier(selectedCharacter.abilityScores.wisdom) }})</p>
+        <p>CHA: {{ selectedCharacter.abilityScores.charisma }} ({{ getAbilityModifier(selectedCharacter.abilityScores.charisma) }})</p>
+      </div>
+
+      <h4>Proficiencies & Traits</h4>
+      <p><strong>Proficiency Bonus:</strong> +{{ selectedCharacter.proficiencyBonus }}</p>
+      <p><strong>Speed:</strong> {{ selectedCharacter.speed }} ft.</p>
+      <p><strong>Languages:</strong> {{ selectedCharacter.languages.join(", ") }}</p>
+      <p><strong>Saving Throws:</strong>
+        <span>Strength <span *ngIf="selectedCharacter.savingThrows.strength">(Proficient)</span></span>,
+        <span>Dexterity <span *ngIf="selectedCharacter.savingThrows.dexterity">(Proficient)</span></span>,
+        <span>Constitution <span *ngIf="selectedCharacter.savingThrows.constitution">(Proficient)</span></span>,
+        <span>Intelligence <span *ngIf="selectedCharacter.savingThrows.intelligence">(Proficient)</span></span>,
+        <span>Wisdom <span *ngIf="selectedCharacter.savingThrows.wisdom">(Proficient)</span></span>,
+        <span>Charisma <span *ngIf="selectedCharacter.savingThrows.charisma">(Proficient)</span></span>
+      </p>
+
+      <h4>Equipment</h4>
+      <ul *ngIf="selectedCharacter.equipment.length > 0">
+        <li *ngFor="let item of selectedCharacter.equipment">{{ item }}</li>
+      </ul>
+      <p *ngIf="selectedCharacter.equipment.length === 0">No equipment listed.</p>
+
+      <div class="character-actions">
+        <button (click)="editCharacter(selectedCharacter.id)">Edit</button>
+        <button (click)="deleteCharacter(selectedCharacter.id)" class="delete-button">Delete</button>
+      </div>
+    </div>
+  </div>
+</div>
