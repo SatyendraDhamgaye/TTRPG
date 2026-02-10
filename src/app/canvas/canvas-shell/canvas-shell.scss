@@ -1,0 +1,11 @@
+.vtt-layout {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+/* Canvas takes remaining space */
+app-map-canvas {
+  flex: 1;
+}

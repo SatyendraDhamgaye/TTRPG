@@ -1,10 +1,10 @@
 import { Component } from '@angular/core';
-import { MapCanvasComponent } from './canvas/map-canvas/map-canvas';
+import { CanvasShellComponent } from './canvas/canvas-shell/canvas-shell';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [MapCanvasComponent],
-  template: `<app-map-canvas></app-map-canvas>`,
+  imports: [CanvasShellComponent],
+  template: `<app-canvas-shell></app-canvas-shell>`,
 })
 export class AppComponent {}

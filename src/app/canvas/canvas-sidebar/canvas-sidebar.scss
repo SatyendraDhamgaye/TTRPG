@@ -1,0 +1,45 @@
+.sidebar {
+  width: 280px;
+  background: #1b1d22;
+  color: #eee;
+  height: 100vh;
+
+  border-right: 1px solid #333;
+
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-header {
+  padding: 12px;
+  background: #14161a;
+  border-bottom: 1px solid #333;
+}
+
+.section {
+  padding: 10px;
+}
+
+button {
+  width: 100%;
+  margin: 6px 0;
+  padding: 6px;
+  background: #2a2d34;
+  color: white;
+  border: 1px solid #444;
+  cursor: pointer;
+}
+
+.token-item {
+  padding: 6px;
+  background: #24272d;
+  margin: 4px 0;
+  border-radius: 4px;
+  cursor: grab;
+}
+
+.tool {
+  padding: 6px;
+  margin: 4px 0;
+  background: #24272d;
+}
