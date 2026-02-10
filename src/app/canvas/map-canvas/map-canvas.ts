@@ -21,6 +21,7 @@ import {
     CoreShapeComponent,
   ],
   templateUrl: './map-canvas.html',
+  styleUrls: ['./map-canvas.scss'],
 })
 
 export class MapCanvasComponent {

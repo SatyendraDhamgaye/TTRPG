@@ -1,10 +1,10 @@
 import { Component } from '@angular/core';
-import { MapCanvasComponent } from './canvas/map-canvas/map-canvas';
+import { RouterLink, RouterOutlet } from '@angular/router';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [MapCanvasComponent],
+  imports: [RouterOutlet, RouterLink],
   templateUrl: './app.html',
   styleUrls: ['./app.scss'],
 })

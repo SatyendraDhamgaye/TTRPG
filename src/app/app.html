@@ -12,13 +12,14 @@
 
   <!-- MAIN CANVAS AREA -->
   <main class="canvas-container">
-    <app-map-canvas></app-map-canvas>
+    <router-outlet></router-outlet>
   </main>
 
   <!-- RIGHT SIDEBAR -->
   <aside class="sidebar right">
     <h3>D&D</h3>
-    <button>Characters</button>
+    <button [routerLink]="['/character/create']">Character Creator</button>
+    <button [routerLink]="['/character/view']">Character Viewer</button>
     <button>Monsters</button>
     <button>Journal</button>
     <button>Handouts</button>
