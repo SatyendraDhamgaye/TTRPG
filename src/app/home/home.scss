@@ -1,0 +1,117 @@
+/* ROOT CONTAINER – never exceed */
+.home-wrapper {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 12px;
+  box-sizing: border-box;
+}
+
+/* HEADER */
+.top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+/* CREATE BAR */
+.create {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+/* LIST */
+.games {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* CARD */
+.card {
+  display: flex;
+  gap: 10px;
+
+  background: #101218;
+  border: 1px solid #1e212b;
+  border-radius: 10px;
+
+  padding: 8px;
+
+  /* CRITICAL */
+  max-width: 100%;
+  overflow: hidden;
+}
+
+/* IMAGE BOX */
+.left {
+  width: 150px;
+  height: 100px;
+  flex-shrink: 0;
+}
+
+.thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+
+  border-radius: 6px;
+}
+
+/* CENTER */
+.mid {
+  flex: 1;
+  min-width: 0;
+}
+
+.title {
+  font-weight: 600;
+  color: #e63b7a;
+}
+
+.row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin: 4px 0;
+}
+
+.launch {
+  background: #e63b7a;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+.badge {
+  background: #3b1e66;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 11px;
+}
+
+.meta {
+  font-size: 12px;
+  color: #888;
+}
+
+.desc {
+  font-size: 12px;
+  color: #aaa;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* RIGHT */
+.right {
+  display: flex;
+  align-items: center;
+}
+
+.ghost {
+  background: transparent;
+  border: 1px solid #333;
+}

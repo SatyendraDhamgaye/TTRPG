@@ -1,10 +1,9 @@
-import { Component } from '@angular/core';
+import { Component, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { StageConfig } from 'konva/lib/Stage';
-import { LineConfig } from 'konva/lib/shapes/Line';
-import { ImageConfig } from 'konva/lib/shapes/Image';
-import { CircleConfig } from 'konva/lib/shapes/Circle';
-
+import Konva from 'konva';
+import { ActivatedRoute } from '@angular/router';
+import { CampaignStorageService } from '../../campaign-storage.service';
 
 
 import {
@@ -23,8 +22,7 @@ import {
   templateUrl: './map-canvas.html',
   styleUrls: ['./map-canvas.scss'],
 })
-
-export class MapCanvasComponent {
+export class MapCanvasComponent implements AfterViewInit {
 
   configStage: StageConfig = {
     width: window.innerWidth,
@@ -33,141 +31,202 @@ export class MapCanvasComponent {
   };
 
   gridSize = 50;
-  gridOriginX = 0;
-gridOriginY = 0;
 
-  scale = 1;
-  readonly minScale = 0.5;
-  readonly maxScale = 2.5;
-  readonly scaleBy = 1.1;
-  mapImageConfig?: ImageConfig;
-  private mapImageElement?: HTMLImageElement;
+  stage!: Konva.Stage;
+  mapLayer!: Konva.Layer;
+  gridLayer!: Konva.Layer;
+  highlightLayer!: Konva.Layer;
+  tokenLayer!: Konva.Layer;
 
+  selectedToken: Konva.Image | null = null;
 
-  imageTokens: TokenConfig[] = [];
+  ngAfterViewInit() {
+    this.initKonva();
 
-  selectedTokenIndex: number | null = null;
+    const id = this.route.snapshot.paramMap.get('id');
 
-  onTokenClick(index: number): void {
-    console.log('[TOKEN CLICK]', index);
-    this.selectedTokenIndex = index;
+if (id) {
+  const camps = this.store.getAll();
+  const camp = camps.find(c => c.id === id);
+
+  if (camp) {
+    console.log('Loaded campaign', camp);
+
+    // later we will load:
+    // camp.tokens
+    // camp.map
+  }
+}
+
   }
 
-  get selectedToken() {
-    return this.selectedTokenIndex !== null
-      ? this.imageTokens[this.selectedTokenIndex]
-      : null;
-  }
+  
+  constructor(
+  private route: ActivatedRoute,
+  private store: CampaignStorageService
+) {}
 
 
+  // =====================================================
+  // INITIALIZATION
+  // =====================================================
 
+  initKonva() {
+    this.stage = (window as any).Konva.stages[0];
 
-get selectedCellX(): number {
-  if (this.selectedTokenIndex === null) return 0;
+    const layers = this.stage.getLayers();
 
-  const stage = (window as any).Konva?.stages?.[0];
-  if (!stage) return 0;
+    this.mapLayer = layers[0];
+    this.gridLayer = layers[1];
+    this.highlightLayer = layers[2];
+    this.tokenLayer = layers[3];
 
-  const token = this.imageTokens[this.selectedTokenIndex];
-  const node = stage.findOne((n: any) => n.attrs.id === token.id);
-  if (!node) return 0;
-
-  const grid = this.gridSize;
-  const scale = stage.scaleX();
-  const stagePos = stage.position();
-
-  const worldX = (node.x() - stagePos.x) / scale;
-
-  return Math.floor((worldX - grid / 2) / grid) * grid;
-}
-
-get selectedCellY(): number {
-  if (this.selectedTokenIndex === null) return 0;
-
-  const stage = (window as any).Konva?.stages?.[0];
-  if (!stage) return 0;
-
-  const token = this.imageTokens[this.selectedTokenIndex];
-  const node = stage.findOne((n: any) => n.attrs.id === token.id);
-  if (!node) return 0;
-
-  const grid = this.gridSize;
-  const scale = stage.scaleY();
-  const stagePos = stage.position();
-
-  const worldY = (node.y() - stagePos.y) / scale;
-
-  return Math.floor((worldY - grid / 2) / grid) * grid;
-}
-
-
-
-
-
-
-
-
-forceHighlight() {
-  this.selectedTokenIndex = this.selectedTokenIndex;
-}
-
-
-
-
-
-
-
-
-
-
-  gridLines: LineConfig[] = [];
-
-  constructor() {
     this.buildGrid();
-    this.loadMapImage('/maps/bmapTemp.jpg');
-    this.addImageToken('/tokens/hero.jpg', 2, 2);
+    this.loadMap();
+    this.addToken();
 
+    window.addEventListener('resize', () => this.onResize());
   }
 
+  // =====================================================
+  // GRID
+  // =====================================================
 
-  private buildGrid(): void {
-    const GRID_EXTENT = 5000; // big enough for zooming & panning
-    const lines: LineConfig[] = [];
+  buildGrid() {
+    const extent = 5000;
 
-    // vertical lines
-    for (let x = -GRID_EXTENT; x <= GRID_EXTENT; x += this.gridSize) {
-      lines.push({
-        points: [x, -GRID_EXTENT, x, GRID_EXTENT],
+    for (let x = -extent; x <= extent; x += this.gridSize) {
+      const line = new Konva.Line({
+        points: [x, -extent, x, extent],
         stroke: '#888',
         strokeWidth: 1,
-        listening: false,
       });
+
+      this.gridLayer.add(line);
     }
 
-    // horizontal lines
-    for (let y = -GRID_EXTENT; y <= GRID_EXTENT; y += this.gridSize) {
-      lines.push({
-        points: [-GRID_EXTENT, y, GRID_EXTENT, y],
+    for (let y = -extent; y <= extent; y += this.gridSize) {
+      const line = new Konva.Line({
+        points: [-extent, y, extent, y],
         stroke: '#888',
         strokeWidth: 1,
-        listening: false,
       });
+
+      this.gridLayer.add(line);
     }
 
-    this.gridLines = lines;
+    this.gridLayer.draw();
   }
 
+  // =====================================================
+  // MAP
+  // =====================================================
 
+  loadMap() {
+    const img = new Image();
+    img.src = '/maps/battleMap001.jpeg';
 
+    img.onload = () => {
+      const map = new Konva.Image({
+        image: img,
+        x: 0,
+        y: 0,
+        width: img.width,
+        height: img.height,
+        listening: false,
+      });
 
-  onWheel(event: WheelEvent): void {
+      this.mapLayer.add(map);
+      this.mapLayer.draw();
+    };
+  }
+
+  // =====================================================
+  // TOKENS
+  // =====================================================
+
+  addToken() {
+    const img = new Image();
+    img.src = '/tokens/hero.jpg';
+
+    img.onload = () => {
+      const token = new Konva.Image({
+        image: img,
+
+        x: 2 * this.gridSize + this.gridSize / 2,
+        y: 2 * this.gridSize + this.gridSize / 2,
+
+        width: this.gridSize,
+        height: this.gridSize,
+
+        offsetX: this.gridSize / 2,
+        offsetY: this.gridSize / 2,
+
+        draggable: true,
+      });
+
+      token.on('click', () => {
+        this.selectedToken = token;
+        this.drawHighlight();
+      });
+
+      token.on('dragmove', () => {
+        this.snapToken(token);
+        this.drawHighlight();
+      });
+
+      this.tokenLayer.add(token);
+      this.tokenLayer.draw();
+    };
+  }
+
+  snapToken(token: Konva.Image) {
+    const pos = token.position();
+
+    const snappedX =
+      Math.floor(pos.x / this.gridSize) * this.gridSize +
+      this.gridSize / 2;
+
+    const snappedY =
+      Math.floor(pos.y / this.gridSize) * this.gridSize +
+      this.gridSize / 2;
+
+    token.position({ x: snappedX, y: snappedY });
+  }
+
+  // =====================================================
+  // HIGHLIGHT
+  // =====================================================
+
+  drawHighlight() {
+    this.highlightLayer.destroyChildren();
+
+    if (!this.selectedToken) return;
+
+    const pos = this.selectedToken.position();
+
+    const rect = new Konva.Rect({
+      x: pos.x - this.gridSize / 2,
+      y: pos.y - this.gridSize / 2,
+      width: this.gridSize,
+      height: this.gridSize,
+      stroke: 'gold',
+      strokeWidth: 4,
+      dash: [6, 4],
+    });
+
+    this.highlightLayer.add(rect);
+    this.highlightLayer.draw();
+  }
+
+  // =====================================================
+  // ZOOM
+  // =====================================================
+
+  onWheel(event: WheelEvent) {
     event.preventDefault();
 
-    // Get the Konva stage (first one on the page)
-    const stage = (window as any).Konva?.stages?.[0];
-    if (!stage) return;
-
-    const oldScale = stage.scaleX();
+    const oldScale = this.stage.scaleX();
     const scaleBy = 1.1;
 
     const newScale =
@@ -175,192 +234,15 @@ forceHighlight() {
         ? oldScale * scaleBy
         : oldScale / scaleBy;
 
-    const clampedScale = Math.max(0.5, Math.min(2.5, newScale));
+    const clamped = Math.max(0.5, Math.min(2.5, newScale));
 
-    stage.scale({ x: clampedScale, y: clampedScale });
-    stage.batchDraw();
+    this.stage.scale({ x: clamped, y: clamped });
+    this.stage.draw();
   }
 
-
-  loadMapImage(src: string): void {
-    const img = new Image();
-    img.src = src;
-
-    img.onload = () => {
-      this.mapImageElement = img;
-
-      this.mapImageConfig = {
-        image: img,
-        x: 0,
-        y: 0,
-        width: img.width,
-        height: img.height,
-        listening: false, // map should not block interactions
-      };
-    };
+  onResize() {
+    this.stage.width(window.innerWidth);
+    this.stage.height(window.innerHeight);
+    this.stage.draw();
   }
-
-  private centerMapOnStage(img: HTMLImageElement): { x: number; y: number } {
-    const stageWidth = this.configStage.width!;
-    const stageHeight = this.configStage.height!;
-
-    return {
-      x: (stageWidth - img.width) / 2,
-      y: (stageHeight - img.height) / 2,
-    };
-  }
-
-  onTokenDragStart(index: number): void {
-    console.log(
-      '[DRAG START]',
-      'index =', index,
-      'token =', this.imageTokens[index]
-    );
-
-    this.selectedTokenIndex = index;
-  }
-
-
-
-
-
-
-
-
-
-onTokenDragEnd(event: any): void {
-  this.imageTokens = [...this.imageTokens];
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  addImageToken(src: string, gridX: number, gridY: number): void {
-    const img = new Image();
-    img.src = src;
-
-    img.onload = () => {
-      const size = this.gridSize;
-
-      // create token FIRST so closures work
-const token: TokenConfig = {
-  id: 'token-' + Math.random().toString(36).substring(2, 9),
-
-  image: img,
-
-  x: gridX * size + size / 2,
-  y: gridY * size + size / 2,
-
-  width: size,
-  height: size,
-
-  offsetX: size / 2,
-  offsetY: size / 2,
-
-  draggable: true,
-  listening: true,
-
-  name: 'token',
-};
-
-
-
-      // 🔑 SNAP + STATE SYNC IN ONE PLACE
-token.dragBoundFunc = (pos: { x: number; y: number }) => {
-  const stage = (window as any).Konva?.stages?.[0];
-  if (!stage) return pos;
-
-  const scale = stage.scaleX();
-  const stagePos = stage.position();
-  const grid = this.gridSize;
-
-  // 🔹 convert screen → world
-  const worldX = (pos.x - stagePos.x) / scale;
-  const worldY = (pos.y - stagePos.y) / scale;
-
-  // 🔹 snap in WORLD space
-const snappedWorldX =
-  Math.floor((worldX - this.gridOriginX) / grid) * grid +
-  grid / 2 +
-  this.gridOriginX;
-
-const snappedWorldY =
-  Math.floor((worldY - this.gridOriginY) / grid) * grid +
-  grid / 2 +
-  this.gridOriginY;
-
-
-
-  // convert back to screen only for Konva render
-  return {
-    x: snappedWorldX * scale + stagePos.x,
-    y: snappedWorldY * scale + stagePos.y,
-  };
-};
-
-
-      this.imageTokens.push(token);
-    };
-  }
-
-
-
-
-
-
-  selectToken(index: number): void {
-    this.selectedTokenIndex = index;
-  }
-
-  onStageClick(event: any): void {
-    const clickedOnStage =
-      event?.target === event?.target?.getStage?.();
-
-    if (clickedOnStage) {
-      this.selectedTokenIndex = null;
-    }
-  }
-
-
-  clearSelection(): void {
-    this.selectedTokenIndex = null;
-  }
-
-  getLiveTokenPosition(token: any) {
-  const stage = (window as any).Konva?.stages?.[0];
-  if (!stage) return { x: token.x, y: token.y };
-
-  const node = stage.findOne((n: any) => n.attrs.image === token.image);
-  if (!node) return { x: token.x, y: token.y };
-
-  const scale = stage.scaleX();
-  const stagePos = stage.position();
-
-  const worldX = (node.x() - stagePos.x) / scale;
-  const worldY = (node.y() - stagePos.y) / scale;
-
-  return { x: worldX, y: worldY };
-}
-
-
-
-
-}
-
-interface TokenConfig extends ImageConfig {
-  id: string;
 }

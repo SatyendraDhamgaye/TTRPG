@@ -1,0 +1,58 @@
+<div class="home-wrapper">
+
+  <div class="top">
+    <h1>Arcane Tabletop</h1>
+
+    <button class="new" (click)="showCreate = !showCreate">
+      + New Game
+    </button>
+  </div>
+
+  <!-- CREATE -->
+  <div class="create" *ngIf="showCreate">
+    <input [(ngModel)]="name" placeholder="Game name">
+    <input [(ngModel)]="description" placeholder="Description">
+    <button (click)="create()">Create</button>
+  </div>
+
+  <!-- LIST -->
+  <div class="games">
+
+    <div class="card" *ngFor="let c of campaigns">
+
+      <div class="left">
+        <img class="thumb" [src]="c.cover">
+      </div>
+
+      <div class="mid">
+
+        <div class="title">{{ c.name }}</div>
+
+        <div class="row">
+          <button class="launch" (click)="open(c)">
+            ▶ Launch Game
+          </button>
+
+          <span class="badge">Creator</span>
+        </div>
+
+        <div class="meta">
+          Last Played On {{ c.lastOpened | date:'shortDate' }}
+        </div>
+
+        <div class="desc">
+          {{ c.description }}
+        </div>
+
+      </div>
+
+      <div class="right">
+        <button class="ghost" (click)="delete(c)">Delete</button>
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
