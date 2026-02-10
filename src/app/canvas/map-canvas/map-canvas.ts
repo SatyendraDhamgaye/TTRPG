@@ -5,7 +5,6 @@ import Konva from 'konva';
 import { ActivatedRoute } from '@angular/router';
 import { CampaignStorageService } from '../../campaign-storage.service';
 
-
 import {
   StageComponent,
   CoreShapeComponent,
@@ -24,54 +23,46 @@ import {
 })
 export class MapCanvasComponent implements AfterViewInit {
 
+  // ---------------- STAGE CONFIG ----------------
+
   configStage: StageConfig = {
     width: window.innerWidth,
     height: window.innerHeight,
     draggable: true,
   };
 
-  gridSize = 50;
+  gridSize = 100;
+
+  // ---------------- KONVA REFERENCES ----------------
 
   stage!: Konva.Stage;
+
   mapLayer!: Konva.Layer;
   gridLayer!: Konva.Layer;
   highlightLayer!: Konva.Layer;
   tokenLayer!: Konva.Layer;
 
-  selectedToken: Konva.Image | null = null;
+  transformer!: Konva.Transformer;
+
+  selectedToken: Konva.Group | null = null;
+
+  // ---------------- LIFECYCLE ----------------
+
+  constructor(
+    private route: ActivatedRoute,
+    private store: CampaignStorageService
+  ) {}
 
   ngAfterViewInit() {
     this.initKonva();
-
-    const id = this.route.snapshot.paramMap.get('id');
-
-if (id) {
-  const camps = this.store.getAll();
-  const camp = camps.find(c => c.id === id);
-
-  if (camp) {
-    console.log('Loaded campaign', camp);
-
-    // later we will load:
-    // camp.tokens
-    // camp.map
-  }
-}
-
+    this.loadCampaignFromRoute();
   }
 
-  
-  constructor(
-  private route: ActivatedRoute,
-  private store: CampaignStorageService
-) {}
-
-
-  // =====================================================
-  // INITIALIZATION
-  // =====================================================
+  // ---------------- INIT ----------------
 
   initKonva() {
+    Konva.pixelRatio = window.devicePixelRatio || 1;
+
     this.stage = (window as any).Konva.stages[0];
 
     const layers = this.stage.getLayers();
@@ -83,14 +74,32 @@ if (id) {
 
     this.buildGrid();
     this.loadMap();
-    this.addToken();
+    this.spawnTestToken();
+
+    // deselect on empty click
+    this.stage.on('mousedown', (e: any) => {
+      if (e.target === this.stage) {
+        this.selectedToken = null;
+        this.updateHighlight();
+      }
+    });
 
     window.addEventListener('resize', () => this.onResize());
   }
 
-  // =====================================================
-  // GRID
-  // =====================================================
+  loadCampaignFromRoute() {
+    const id = this.route.snapshot.paramMap.get('id');
+    if (!id) return;
+
+    const camps = this.store.getAll();
+    const camp = camps.find(c => c.id === id);
+
+    if (camp) {
+      console.log('Loaded campaign', camp);
+    }
+  }
+
+  // ---------------- GRID ----------------
 
   buildGrid() {
     const extent = 5000;
@@ -118,9 +127,7 @@ if (id) {
     this.gridLayer.draw();
   }
 
-  // =====================================================
-  // MAP
-  // =====================================================
+  // ---------------- MAP ----------------
 
   loadMap() {
     const img = new Image();
@@ -141,87 +148,248 @@ if (id) {
     };
   }
 
-  // =====================================================
-  // TOKENS
-  // =====================================================
+  // ---------------- IMAGE PREP ----------------
 
-  addToken() {
+  prepareTokenImage(source: HTMLImageElement): HTMLImageElement {
+
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d')!;
+
+    const target = 256;
+
+    canvas.width = target;
+    canvas.height = target;
+
+    ctx.imageSmoothingEnabled = true;
+
+    // center crop to square
+    const size = Math.min(source.width, source.height);
+    const sx = (source.width - size) / 2;
+    const sy = (source.height - size) / 2;
+
+    ctx.drawImage(
+      source,
+      sx, sy, size, size,
+      0, 0, target, target
+    );
+
+    const out = new Image();
+    out.src = canvas.toDataURL();
+
+    return out;
+  }
+
+  // ---------------- TOKEN CREATION ----------------
+
+  spawnTestToken() {
     const img = new Image();
     img.src = '/tokens/hero.jpg';
 
     img.onload = () => {
-      const token = new Konva.Image({
-        image: img,
+      const sharp = this.prepareTokenImage(img);
 
-        x: 2 * this.gridSize + this.gridSize / 2,
-        y: 2 * this.gridSize + this.gridSize / 2,
-
-        width: this.gridSize,
-        height: this.gridSize,
-
-        offsetX: this.gridSize / 2,
-        offsetY: this.gridSize / 2,
-
-        draggable: true,
-      });
-
-      token.on('click', () => {
-        this.selectedToken = token;
-        this.drawHighlight();
-      });
-
-      token.on('dragmove', () => {
-        this.snapToken(token);
-        this.drawHighlight();
-      });
-
-      this.tokenLayer.add(token);
-      this.tokenLayer.draw();
+      sharp.onload = () => {
+        this.createToken(
+          2 * this.gridSize + this.gridSize / 2,
+          2 * this.gridSize + this.gridSize / 2,
+          sharp
+        );
+      };
     };
+    
   }
 
-  snapToken(token: Konva.Image) {
-    const pos = token.position();
+createToken(x: number, y: number, img: HTMLImageElement) {
 
-    const snappedX =
-      Math.floor(pos.x / this.gridSize) * this.gridSize +
-      this.gridSize / 2;
+  const size = this.gridSize;
 
-    const snappedY =
-      Math.floor(pos.y / this.gridSize) * this.gridSize +
-      this.gridSize / 2;
+  const group = new Konva.Group({
+    x,
+    y,
+    draggable: true,
+  });
 
-    token.position({ x: snappedX, y: snappedY });
+  // --------------------------------------------------
+  // PLAIN SQUARE IMAGE TOKEN
+  // --------------------------------------------------
+
+  const image = new Konva.Image({
+    
+    image: img,
+
+    x: -size / 2,
+    y: -size / 2,
+    width: size,
+    height: size,
+
+    // keep it sharp
+    imageSmoothingEnabled: false,
+    perfectDrawEnabled: true,
+    
+  });
+
+  group.add(image);
+
+  // --------------------------------------------------
+  // EVENTS
+  // --------------------------------------------------
+
+  group.on('click', () => this.selectToken(group));
+
+  group.on('dragstart', () => {
+    this.selectToken(group);
+
+    if (this.transformer) {
+      this.transformer.visible(false);
+    }
+  });
+
+  group.on('dragmove', () => {
+    this.snapGroup(group);
+  });
+
+  group.on('dragend', () => {
+    if (this.transformer) {
+      this.transformer.visible(true);
+    }
+  });
+
+  this.tokenLayer.add(group);
+  this.tokenLayer.draw();
+
+  return group;
+}
+
+
+
+
+  // ---------------- SELECTION & RESIZE ----------------
+
+selectToken(group: Konva.Group) {
+  this.selectedToken = group;
+  this.attachTransformer(group);
+
+  // ensure transformer is visible when selecting
+  if (this.transformer) {
+    this.transformer.visible(true);
+    this.transformer.forceUpdate();
+  }
+}
+
+
+ attachTransformer(group: Konva.Group) {
+
+  if (this.transformer) {
+    this.transformer.destroy();
   }
 
-  // =====================================================
-  // HIGHLIGHT
-  // =====================================================
+  this.transformer = new Konva.Transformer({
+    nodes: [group],
 
-  drawHighlight() {
-    this.highlightLayer.destroyChildren();
+    // only corner resize like Roll20
+    enabledAnchors: [
+      'top-left',
+      'top-right',
+      'bottom-left',
+      'bottom-right'
+    ],
 
-    if (!this.selectedToken) return;
+    rotateEnabled: false,
+    keepRatio: true,
 
-    const pos = this.selectedToken.position();
+    // important for clean hitbox
+    ignoreStroke: true,
+    borderStroke: '#4a90e2',
+    anchorFill: '#4a90e2',
+    anchorSize: 8,
 
-    const rect = new Konva.Rect({
-      x: pos.x - this.gridSize / 2,
-      y: pos.y - this.gridSize / 2,
-      width: this.gridSize,
-      height: this.gridSize,
-      stroke: 'gold',
-      strokeWidth: 4,
-      dash: [6, 4],
-    });
+    boundBoxFunc: (oldBox, newBox) => {
 
-    this.highlightLayer.add(rect);
-    this.highlightLayer.draw();
-  }
+      // keep perfect square
+      const size = Math.max(newBox.width, newBox.height);
 
-  // =====================================================
-  // ZOOM
-  // =====================================================
+      return {
+        x: newBox.x,
+        y: newBox.y,
+        width: size,
+        height: size,
+        rotation: 0
+      };
+    }
+  });
+
+  // ---- SNAP RESIZE TO GRID ----
+this.transformer.on('transformend', () => {
+
+  // get screen size
+  const box = group.getClientRect();
+
+  // ---- CRITICAL FIX ----
+  const stageScale = this.stage.scaleX();
+
+  // convert back to world/grid pixels
+  const current = box.width / stageScale;
+
+  // convert to grid cells
+  const cells = Math.round(current / this.gridSize);
+
+  // clamp to D&D sizes
+  const clamped = Math.min(4, Math.max(1, cells));
+
+  const target = clamped * this.gridSize;
+
+  const newScale = target / this.gridSize;
+
+  group.scale({ x: newScale, y: newScale });
+
+  this.snapGroup(group);
+});
+
+
+this.tokenLayer.add(this.transformer);
+this.transformer.moveToTop();
+this.tokenLayer.draw();
+
+}
+
+
+  // ---------------- POSITION ----------------
+
+snapGroup(group: Konva.Group) {
+
+  const pos = group.position();
+
+  const stageScale = this.stage.scaleX();
+
+  const scale = group.scaleX();
+  const cells = Math.round(scale);
+
+  // offset so large tokens center properly
+  const offset = (cells - 1) * this.gridSize / 2;
+
+  const snappedX =
+    Math.floor((pos.x - offset) / this.gridSize) * this.gridSize +
+    this.gridSize / 2 + offset;
+
+  const snappedY =
+    Math.floor((pos.y - offset) / this.gridSize) * this.gridSize +
+    this.gridSize / 2 + offset;
+
+  group.position({
+    x: snappedX,
+    y: snappedY
+  });
+}
+
+
+  // ---------------- HIGHLIGHT ----------------
+
+updateHighlight() {
+  // no-op for now – transformer handles selection UI
+}
+
+
+  // ---------------- ZOOM ----------------
 
   onWheel(event: WheelEvent) {
     event.preventDefault();
