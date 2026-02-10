@@ -1,16 +1,30 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+
 :root {
-  --bg: #0e0f13;
-  --card: #16181f;
-  --accent: #c79b3b;
-  --text: #e6e6e6;
-  --muted: #8b8fa3;
-  --danger: #c94b4b;
+  --color-bg: #f4efe6;
+  --color-surface: #f9f5ee;
+  --color-surface-strong: #ede5d7;
+  --color-text: #1e1e1e;
+  --color-text-muted: #4b3f54;
+  --color-primary: #7a1e1e;
+  --color-primary-strong: #611717;
+  --color-accent: #c9a44c;
+  --color-accent-soft: #f2d27d;
+  --color-link: #2c4f7c;
+  --color-danger: #c0392b;
+  --color-success: #3d6b4f;
+  --border-soft: #d8cdb9;
+  --shadow-soft: 0 10px 24px rgba(30, 30, 30, 0.12);
+  --font-header: 'Cinzel', 'Times New Roman', serif;
+  --font-body: 'Inter', Arial, sans-serif;
 }
 
+* {
+  box-sizing: border-box;
+}
+
+html,
 body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: system-ui, -apple-system, Segoe UI, Roboto;
   margin: 0;
 }
 
@@ -41,4 +55,41 @@ input, textarea {
   padding: 10px;
   border-radius: 8px;
   width: 100%;
+  height: 100%;
+  font-family: var(--font-body);
+  color: var(--color-text);
+  background: radial-gradient(circle at top, #f9f5ee 0%, var(--color-bg) 38%, #ece2d1 100%);
+}
+
+app-root {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-header);
+  letter-spacing: 0.04em;
+  margin-top: 0;
+}
+
+p,
+li,
+label,
+input,
+select,
+button,
+small {
+  font-family: var(--font-body);
+}
+
+button,
+input,
+select {
+  border-radius: 8px;
 }
