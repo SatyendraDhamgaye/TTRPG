@@ -1,7 +1,44 @@
-html, body {
+:root {
+  --bg: #0e0f13;
+  --card: #16181f;
+  --accent: #c79b3b;
+  --text: #e6e6e6;
+  --muted: #8b8fa3;
+  --danger: #c94b4b;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, Segoe UI, Roboto;
   margin: 0;
-  padding: 0;
+}
+
+.card {
+  background: var(--card);
+  border-radius: 12px;
+  padding: 16px;
+  border: 1px solid #1f222b;
+}
+
+button {
+  background: var(--accent);
+  border: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+button.danger {
+  background: var(--danger);
+}
+
+input, textarea {
+  background: #0b0c10;
+  border: 1px solid #222;
+  color: white;
+  padding: 10px;
+  border-radius: 8px;
   width: 100%;
-  height: 100%;
-  overflow: hidden; // 🔑 kills browser scrollbars
 }

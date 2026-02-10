@@ -1,46 +1,8 @@
 <div class="canvas-wheel-zone" (wheel)="onWheel($event)">
   <ko-stage [config]="configStage">
-
-    <ko-layer>
-      <ko-image
-        *ngIf="mapImageConfig"
-        [config]="mapImageConfig">
-      </ko-image>
-    </ko-layer>
-
-    <ko-layer>
-      <ko-line
-        *ngFor="let line of gridLines"
-        [config]="line">
-      </ko-line>
-    </ko-layer>
-
-    <ko-layer>
-      <ko-rect
-        *ngIf="selectedToken"
-        [config]="{
-          x: selectedCellX,
-          y: selectedCellY,
-          width: gridSize,
-          height: gridSize,
-          stroke: 'gold',
-          strokeWidth: 3,
-          listening: false
-        }">
-      </ko-rect>
-    </ko-layer>
-
-    <ko-layer>
-      <ko-image
-        *ngFor="let token of imageTokens; let i = index"
-        [config]="token"
-        draggable="true"
-        (click)="onTokenClick(i)"
-        (dragstart)="onTokenDragStart(i)"
-        (dragmove)="forceHighlight()"
-        (dragend)="onTokenDragEnd($event)">
-      </ko-image>
-    </ko-layer>
-
+    <ko-layer></ko-layer>   <!-- MAP LAYER -->
+    <ko-layer></ko-layer>   <!-- GRID LAYER -->
+    <ko-layer></ko-layer>   <!-- HIGHLIGHT LAYER -->
+    <ko-layer></ko-layer>   <!-- TOKEN LAYER -->
   </ko-stage>
 </div>

@@ -1,11 +1,10 @@
 import { Component } from '@angular/core';
-import { MapCanvasComponent } from './canvas/map-canvas/map-canvas';
+import { RouterOutlet } from '@angular/router';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [MapCanvasComponent],
-  templateUrl: './app.html',
-  styleUrls: ['./app.scss'],
+  imports: [RouterOutlet],
+  template: `<router-outlet></router-outlet>`
 })
 export class App {}
