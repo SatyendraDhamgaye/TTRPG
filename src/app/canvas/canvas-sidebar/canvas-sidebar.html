@@ -1,34 +1,105 @@
 <div class="sidebar">
 
-  <div class="sidebar-header">
-    <h3>VTT Tools</h3>
-  </div>
+  <!-- ================= TOP BAR ================= -->
+<div class="top-bar">
 
-  <div class="section">
-    <h4>Tokens</h4>
+  <i (click)="setMode('characters')"
+     [class.active]="mode === 'characters'"
+     title="Characters">👤</i>
 
-    <button (click)="createTestToken()">
-      + Create Token
-    </button>
+  <i (click)="setMode('tokens')"
+     [class.active]="mode === 'tokens'"
+     title="Tokens">🎴</i>
 
-    <div class="token-list">
-      <div class="token-item">
-        Hero Token
-      </div>
+  <i (click)="setMode('pdfs')"
+     [class.active]="mode === 'pdfs'"
+     title="Handouts">📜</i>
 
-      <div class="token-item">
-        Goblin
-      </div>
+  <i (click)="setMode('music')"
+     [class.active]="mode === 'music'"
+     title="Music">🎧</i>
+
+  <i (click)="setMode('settings')"
+     [class.active]="mode === 'settings'"
+     title="Settings">⚙️</i>
+
+</div>
+
+
+  <!-- ================ TOKENS MODE ================ -->
+  <div *ngIf="mode === 'tokens'" class="mode-container">
+
+    <!-- SEARCH (ONLY ONE) -->
+    <div class="search">
+      <input
+        placeholder="Search by name..."
+        [(ngModel)]="search"
+      />
     </div>
+
+
+    <!-- LIST -->
+   <div class="scroll-zone">
+      <div class="section-title">Tokens</div>
+
+      <div class="token-list">
+
+        <div
+          class="token-row"
+          *ngFor="let t of filteredTokens"
+          draggable="true"
+          (dragstart)="dragStart($event, t)"
+        >
+          <img [src]="t.image">
+          <span>{{t.name}}</span>
+          <button (click)="delete(t.id)">✕</button>
+        </div>
+
+      </div>
+      
+    </div>
+
+    <!-- CREATOR -->
+    <div class="creator">
+      New Token
+      <input [(ngModel)]="name" placeholder="Name">
+
+      <input type="file" (change)="onFile($event)">
+
+      <div class="preview">
+        <img *ngIf="image" [src]="image">
+        <span *ngIf="!image">No Image</span>
+      </div>
+
+      <select [(ngModel)]="size">
+        <option value="medium">Medium 1x1</option>
+        <option value="large">Large 2x2</option>
+        <option value="huge">Huge 3x3</option>
+        <option value="gargantuan">Gargantuan 4x4</option>
+      </select>
+
+      <button (click)="create()">Create</button>
+
+    </div>
+
   </div>
 
+  <!-- ================ OTHER MODES ================ -->
 
-  <div class="section">
-    <h4>Tools</h4>
+  <div *ngIf="mode === 'characters'" class="empty">
+    Characters coming soon...
+  </div>
 
-    <div class="tool">Measure</div>
-    <div class="tool">Draw</div>
-    <div class="tool">Fog</div>
+  <div *ngIf="mode === 'pdfs'" class="empty">
+    Handouts & PDFs coming soon...
+  </div>
+
+  <div *ngIf="mode === 'music'" class="empty">
+    Music player coming soon...
+  </div>
+
+  <div *ngIf="mode === 'settings'" class="empty">
+    Settings panel coming soon...
   </div>
 
 </div>

@@ -4,6 +4,8 @@ import { StageConfig } from 'konva/lib/Stage';
 import Konva from 'konva';
 import { ActivatedRoute } from '@angular/router';
 import { CampaignStorageService } from '../../campaign-storage.service';
+import { TokenService } from '../../services/token.service';
+import { TokenData } from '../../models/token.model';
 
 import {
   StageComponent,
@@ -50,7 +52,8 @@ export class MapCanvasComponent implements AfterViewInit {
 
   constructor(
     private route: ActivatedRoute,
-    private store: CampaignStorageService
+    private store: CampaignStorageService,
+    private tokenService: TokenService
   ) {}
 
   ngAfterViewInit() {
@@ -413,4 +416,47 @@ updateHighlight() {
     this.stage.height(window.innerHeight);
     this.stage.draw();
   }
+
+  allowDrop(e: DragEvent) {
+  e.preventDefault();
+}
+
+onDrop(e: DragEvent) {
+  e.preventDefault();
+
+  const data = e.dataTransfer?.getData('token');
+  if (!data) return;
+
+  const token: TokenData = JSON.parse(data);
+
+  const img = new Image();
+  img.src = token.image;
+
+  img.onload = () => {
+
+    const sharp = this.prepareTokenImage(img);
+
+    sharp.onload = () => {
+
+      const cells =
+        this.tokenService.sizeToCells(token.size);
+
+      const size = cells * this.gridSize;
+
+      const group = this.createToken(
+        this.stage.getPointerPosition()!.x,
+        this.stage.getPointerPosition()!.y,
+        sharp
+      );
+
+      // force correct scale
+      const scale = size / this.gridSize;
+      group.scale({ x: scale, y: scale });
+
+      this.snapGroup(group);
+    };
+  };
+}
+
+
 }

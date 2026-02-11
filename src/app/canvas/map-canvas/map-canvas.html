@@ -1,8 +1,17 @@
-<div class="canvas-wheel-zone" (wheel)="onWheel($event)">
+<div
+  class="canvas-wheel-zone"
+  (wheel)="onWheel($event)"
+  (drop)="onDrop($event)"
+  (dragover)="allowDrop($event)"
+>
+
   <ko-stage [config]="configStage">
+
     <ko-layer></ko-layer>   <!-- MAP LAYER -->
     <ko-layer></ko-layer>   <!-- GRID LAYER -->
     <ko-layer></ko-layer>   <!-- HIGHLIGHT LAYER -->
     <ko-layer></ko-layer>   <!-- TOKEN LAYER -->
+
   </ko-stage>
+
 </div>
