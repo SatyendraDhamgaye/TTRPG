@@ -1,20 +1,30 @@
-import { Component } from '@angular/core';
+import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TokenService } from '../../services/token.service';
 import { TokenData } from '../../models/token.model';
 import { FormsModule } from '@angular/forms';
 import { ChangeDetectorRef } from '@angular/core';
 
-
+import { RouterLink, RouterLinkActive } from '@angular/router';
 
 @Component({
   selector: 'app-canvas-sidebar',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [
+    CommonModule,
+    FormsModule,
+
+    // for navigation
+    RouterLink,
+    RouterLinkActive
+  ],
   templateUrl: './canvas-sidebar.html',
   styleUrls: ['./canvas-sidebar.scss']
 })
 export class CanvasSidebarComponent {
+
+  // receive from shell
+  @Input() campaignId: string | null = null;
 
   name = '';
   image = '';
@@ -22,95 +32,88 @@ export class CanvasSidebarComponent {
 
   size: TokenData['size'] = 'medium';
 
-  tokens!: any;
+  // signal from service
+tokens: any;
 
-  mode: 'tokens' | 'characters' | 'pdfs' | 'music' | 'settings' = 'tokens';
+mode: 'map' | 'tokens' | 'characters' | 'pdfs' | 'music' | 'settings' = 'map';
 
-setMode(m: any) {
-  this.mode = m;
-}
-
-
-  constructor(private tokenService: TokenService, private cdr: ChangeDetectorRef) {
-    this.tokens = this.tokenService.tokens;
+  constructor(
+    private tokenService: TokenService,
+    private cdr: ChangeDetectorRef
+  ) {
+      this.tokens = this.tokenService.tokens;
   }
 
-onFile(e: any) {
-  const file = e.target.files[0];
-  if (!file) return;
+  setMode(m: any) {
+    this.mode = m;
+  }
 
-  const reader = new FileReader();
+  onFile(e: any) {
+    const file = e.target.files[0];
+    if (!file) return;
 
-  reader.onload = () => {
+    const reader = new FileReader();
 
-    // wrap in timeout → forces Angular update cycle
-    setTimeout(() => {
-      this.image = reader.result as string;
+    reader.onload = () => {
+      setTimeout(() => {
+        this.image = reader.result as string;
+        this.cdr.markForCheck();
+        this.cdr.detectChanges();
+      });
+    };
 
-      // double ensure UI refresh
-      this.cdr.markForCheck();
-      this.cdr.detectChanges();
+    reader.readAsDataURL(file);
+  }
+
+  get filteredTokens() {
+    const term = this.search.trim().toLowerCase();
+
+    if (!term) return this.tokens();
+
+    const words: string[] = term.split(' ').filter((w: string) => w);
+
+    return this.tokens().filter((t: any) => {
+
+      const name: string = t.name.toLowerCase();
+
+      return words.every((w: string) =>
+        name.split(' ').some((nw: string) => nw.startsWith(w))
+      );
+
     });
-  };
-
-  reader.readAsDataURL(file);
-}
-
-get filteredTokens() {
-  const term = this.search.trim().toLowerCase();
-
-  if (!term) return this.tokens();
-
-  const words: string[] = term.split(' ').filter((w: string) => w);
-
-  return this.tokens().filter((t: any) => {
-
-    const name: string = t.name.toLowerCase();
-
-    return words.every((w: string) =>
-      name.split(' ').some((nw: string) => nw.startsWith(w))
-    );
-
-  });
-}
-
-
-
-
-
-create() {
-  if (!this.image) {
-    alert('Please select image first');
-    return;
   }
 
-  const token = {
-    id: crypto.randomUUID(),
-    name: this.name || 'Token',
-    image: this.image,
-    size: this.size
-  };
+  create() {
+    if (!this.image) {
+      alert('Please select image first');
+      return;
+    }
 
-  this.tokenService.add(token);
+    const token = {
+      id: crypto.randomUUID(),
+      name: this.name || 'Token',
+      image: this.image,
+      size: this.size,
 
-  // -------- RESET FORM --------
+      // important fix
+      campaignId: this.campaignId ?? undefined
+    };
 
-  this.name = '';
-  this.size = 'medium';
-  this.image = '';
+    this.tokenService.add(token);
 
-  // reset file input element
-  const fileInput =
-    document.querySelector('input[type="file"]') as HTMLInputElement;
+    this.name = '';
+    this.size = 'medium';
+    this.image = '';
 
-  if (fileInput) {
-    fileInput.value = '';
+    const fileInput =
+      document.querySelector('input[type="file"]') as HTMLInputElement;
+
+    if (fileInput) {
+      fileInput.value = '';
+    }
+
+    this.cdr.detectChanges();
   }
-
-  this.cdr.detectChanges();
-}
-
-
 
   delete(id: string) {
     this.tokenService.remove(id);
@@ -120,4 +123,3 @@ create() {
     e.dataTransfer?.setData('token', JSON.stringify(token));
   }
 }
-

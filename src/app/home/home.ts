@@ -29,18 +29,23 @@ export class HomeComponent implements OnInit {
     
   }
 
-  create() {
-    if (!this.name.trim()) return;
+create() {
+  if (!this.name.trim()) return;
 
-    const c = this.store.create(this.name, this.description);
+  const c = this.store.create(this.name, this.description);
 
-    this.router.navigate(['/play', c.id]);
-  }
+  // 👉 go directly to canvas layout
+  this.router.navigate(['/canvas', c.id]);
+}
 
-  open(c: any) {
-    this.store.markOpened(c.id);
-    this.router.navigate(['/play', c.id]);
-  }
+
+ open(c: any) {
+  this.store.markOpened(c.id);
+
+  // 👉 same here
+  this.router.navigate(['/canvas', c.id]);
+}
+
 
   delete(c: any) {
     if (!confirm('Delete campaign?')) return;

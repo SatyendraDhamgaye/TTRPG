@@ -15,34 +15,41 @@ export class CampaignStorageService {
     localStorage.setItem(this.KEY, JSON.stringify(list));
   }
 
-private randomCover() {
-  const n = Math.floor(Math.random() * 6) + 1;
-  return `/covers/${n}.jpg`;
-}
+  private randomCover() {
+    const n = Math.floor(Math.random() * 6) + 1;
+    return `/covers/${n}.jpg`;
+  }
 
-create(name: string, description: string): Campaign {
-  const campaigns = this.getAll();
+  create(name: string, description: string): Campaign {
+    const campaigns = this.getAll();
 
-  const newCamp: Campaign = {
-    id: 'camp-' + Math.random().toString(36).substring(2, 9),
+    const newCamp: Campaign = {
+      id: 'camp-' + Math.random().toString(36).substring(2, 9),
 
-    name,
-    description,
+      name,
+      description,
 
-    cover: this.randomCover(),   // 🔥
+      cover: this.randomCover(),
 
-    createdAt: Date.now(),
-    lastOpened: Date.now(),
+      createdAt: Date.now(),
+      lastOpened: Date.now(),
 
-    tokens: []
-  };
+      // legacy field (not used anymore but keep safe)
+      tokens: [],
 
-  campaigns.push(newCamp);
-  this.saveAll(campaigns);
+      // 👉 NEW board data
+      board: {
+        tokens: [],
+        map: null,
+        version: 1
+      }
+    };
 
-  return newCamp;
-}
+    campaigns.push(newCamp);
+    this.saveAll(campaigns);
 
+    return newCamp;
+  }
 
   update(camp: Campaign) {
     const campaigns = this.getAll();
@@ -67,5 +74,25 @@ create(name: string, description: string): Campaign {
       c.lastOpened = Date.now();
       this.saveAll(camps);
     }
+  }
+
+  // ================= NEW =================
+
+  get(id: string): Campaign | undefined {
+    return this.getAll().find(c => c.id === id);
+  }
+
+  updateBoard(id: string, data: any) {
+    const camps = this.getAll();
+    const camp = camps.find(c => c.id === id);
+
+    if (!camp) return;
+
+    camp.board = {
+      ...(camp.board || {}),
+      ...data
+    };
+
+    this.saveAll(camps);
   }
 }

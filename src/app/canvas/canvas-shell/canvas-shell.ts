@@ -1,9 +1,10 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 import { MapCanvasComponent } from '../map-canvas/map-canvas';
 import { CanvasSidebarComponent } from '../canvas-sidebar/canvas-sidebar';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterOutlet } from '@angular/router';
+import { CampaignStorageService } from '../../campaign-storage.service';
 
 @Component({
   selector: 'app-canvas-shell',
@@ -11,20 +12,31 @@ import { ActivatedRoute } from '@angular/router';
   imports: [
     CommonModule,
     MapCanvasComponent,
-    CanvasSidebarComponent
+    CanvasSidebarComponent,
   ],
   templateUrl: './canvas-shell.html',
   styleUrls: ['./canvas-shell.scss']
 })
 export class CanvasShellComponent {
 
-  constructor(private route: ActivatedRoute) {}
+  campaignId: string | null = null;
+  campaignName = '';               // 👈 NEW
 
-ngOnInit() {
-  const id = this.route.snapshot.paramMap.get('id');
-  console.log('Opened canvas for campaign:', id);
-}
+  constructor(
+    private route: ActivatedRoute,
+    private store: CampaignStorageService   // 👈 NEW
+  ) {}
 
+  ngOnInit() {
+    const id = this.route.snapshot.paramMap.get('id');
+    this.campaignId = id;
 
+    if (id) {
+      const camp = this.store.get(id);      // 👈 get full campaign
+      this.campaignName = camp?.name || id; // fallback to id
+    }
+
+    console.log('Opened canvas for campaign:', id);
+  }
 }
 

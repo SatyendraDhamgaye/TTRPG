@@ -1,8 +1,8 @@
-import { Component, AfterViewInit } from '@angular/core';
+import { Component, AfterViewInit, Input, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { StageConfig } from 'konva/lib/Stage';
 import Konva from 'konva';
-import { ActivatedRoute } from '@angular/router';
+
 import { CampaignStorageService } from '../../campaign-storage.service';
 import { TokenService } from '../../services/token.service';
 import { TokenData } from '../../models/token.model';
@@ -23,9 +23,10 @@ import {
   templateUrl: './map-canvas.html',
   styleUrls: ['./map-canvas.scss'],
 })
-export class MapCanvasComponent implements AfterViewInit {
+export class MapCanvasComponent implements AfterViewInit, OnChanges {
 
-  // ---------------- STAGE CONFIG ----------------
+  // 👇 campaign now comes from shell (not router)
+  @Input() campaignId: string | null = null;
 
   configStage: StageConfig = {
     width: window.innerWidth,
@@ -35,8 +36,6 @@ export class MapCanvasComponent implements AfterViewInit {
 
   gridSize = 100;
 
-  // ---------------- KONVA REFERENCES ----------------
-
   stage!: Konva.Stage;
 
   mapLayer!: Konva.Layer;
@@ -45,25 +44,52 @@ export class MapCanvasComponent implements AfterViewInit {
   tokenLayer!: Konva.Layer;
 
   transformer!: Konva.Transformer;
-
   selectedToken: Konva.Group | null = null;
 
-  // ---------------- LIFECYCLE ----------------
-
   constructor(
-    private route: ActivatedRoute,
     private store: CampaignStorageService,
     private tokenService: TokenService
   ) {}
 
-  ngAfterViewInit() {
-    this.initKonva();
-    this.loadCampaignFromRoute();
-  }
+  // ================= LIFECYCLE =================
 
-  // ---------------- INIT ----------------
+ngAfterViewInit() {
+
+  // wait until ng2-konva actually registers stage
+  setTimeout(() => {
+    this.initKonva();
+
+    if (this.campaignId) {
+      this.tokenService.setCampaign(this.campaignId);
+      this.loadPlacedTokens();
+    }
+  }, 200);
+}
+
+
+ngOnChanges(changes: SimpleChanges) {
+
+  if (!changes['campaignId'] || !this.campaignId) return;
+
+  this.tokenService.setCampaign(this.campaignId);
+
+  // 👉 only load if konva already ready
+  if (this.tokenLayer) {
+    this.loadPlacedTokens();
+  } else {
+    // wait until initKonva finishes
+    setTimeout(() => this.loadPlacedTokens(), 250);
+  }
+}
+
+
+  // ================= INIT =================
 
   initKonva() {
+     if (!(window as any).Konva?.stages?.length) {
+    console.warn('Konva stage not ready yet');
+    return;
+  }
     Konva.pixelRatio = window.devicePixelRatio || 1;
 
     this.stage = (window as any).Konva.stages[0];
@@ -77,9 +103,7 @@ export class MapCanvasComponent implements AfterViewInit {
 
     this.buildGrid();
     this.loadMap();
-    this.spawnTestToken();
 
-    // deselect on empty click
     this.stage.on('mousedown', (e: any) => {
       if (e.target === this.stage) {
         this.selectedToken = null;
@@ -90,19 +114,114 @@ export class MapCanvasComponent implements AfterViewInit {
     window.addEventListener('resize', () => this.onResize());
   }
 
-  loadCampaignFromRoute() {
-    const id = this.route.snapshot.paramMap.get('id');
-    if (!id) return;
+  onWheel(event: WheelEvent) {
+  event.preventDefault();
 
-    const camps = this.store.getAll();
-    const camp = camps.find(c => c.id === id);
+  const oldScale = this.stage.scaleX();
+  const scaleBy = 1.1;
 
-    if (camp) {
-      console.log('Loaded campaign', camp);
-    }
+  const newScale =
+    event.deltaY < 0
+      ? oldScale * scaleBy
+      : oldScale / scaleBy;
+
+  const clamped = Math.max(0.5, Math.min(2.5, newScale));
+
+  this.stage.scale({ x: clamped, y: clamped });
+  this.stage.draw();
+}
+
+
+  // ================= LOAD / SAVE =================
+
+loadPlacedTokens() {
+
+  // ---- SAFETY ----
+  if (!this.tokenLayer) {
+    console.log('Token layer not ready yet');
+    return;
   }
 
-  // ---------------- GRID ----------------
+  if (!this.campaignId) return;
+
+  const camp = this.store.get(this.campaignId);
+
+  console.log('Loading campaign →', camp);
+
+  if (!camp?.board?.tokens) {
+    console.log('No tokens stored for campaign');
+    return;
+  }
+
+  // clear old tokens
+  this.tokenLayer.destroyChildren();
+
+  // get token library from sidebar service
+  const library = this.tokenService.tokens();
+
+  console.log('Token library →', library);
+  console.log('Placed tokens →', camp.board.tokens);
+
+  camp.board.tokens.forEach((t: any) => {
+
+    // find matching token metadata
+    const meta = library.find((x: any) => x.id === t.id);
+
+    const img = new Image();
+
+    // use real image from library if exists
+    img.src = meta?.image || '/tokens/default.png';
+
+    img.onload = () => {
+
+      const sharp = this.prepareTokenImage(img);
+
+      sharp.onload = () => {
+
+        const group = this.createToken(
+          t.x,
+          t.y,
+          sharp,
+          t.id
+        );
+
+        // restore size
+        group.scale({
+          x: t.cells,
+          y: t.cells
+        });
+
+      };
+    };
+
+  });
+}
+
+
+
+  savePlacedTokens() {
+    if (!this.campaignId) return;
+
+    const placed: any[] = [];
+
+    this.tokenLayer.getChildren().forEach((g: any) => {
+      const scale = g.scaleX();
+      const cells = Math.round(scale);
+
+      placed.push({
+        id: (g as any).attrs.tokenId,
+        x: g.x(),
+        y: g.y(),
+        cells
+      });
+    });
+
+    this.store.updateBoard(this.campaignId, {
+      tokens: placed
+    });
+  }
+
+  // ================= GRID =================
 
   buildGrid() {
     const extent = 5000;
@@ -130,7 +249,7 @@ export class MapCanvasComponent implements AfterViewInit {
     this.gridLayer.draw();
   }
 
-  // ---------------- MAP ----------------
+  // ================= MAP =================
 
   loadMap() {
     const img = new Image();
@@ -151,10 +270,9 @@ export class MapCanvasComponent implements AfterViewInit {
     };
   }
 
-  // ---------------- IMAGE PREP ----------------
+  // ================= IMAGE PREP =================
 
   prepareTokenImage(source: HTMLImageElement): HTMLImageElement {
-
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d')!;
 
@@ -165,7 +283,6 @@ export class MapCanvasComponent implements AfterViewInit {
 
     ctx.imageSmoothingEnabled = true;
 
-    // center crop to square
     const size = Math.min(source.width, source.height);
     const sx = (source.width - size) / 2;
     const sy = (source.height - size) / 2;
@@ -182,234 +299,127 @@ export class MapCanvasComponent implements AfterViewInit {
     return out;
   }
 
-  // ---------------- TOKEN CREATION ----------------
+  // ================= TOKEN CREATION =================
 
-  spawnTestToken() {
-    const img = new Image();
-    img.src = '/tokens/hero.jpg';
+  createToken(x: number, y: number, img: HTMLImageElement, tokenId?: string) {
 
-    img.onload = () => {
-      const sharp = this.prepareTokenImage(img);
+    const size = this.gridSize;
 
-      sharp.onload = () => {
-        this.createToken(
-          2 * this.gridSize + this.gridSize / 2,
-          2 * this.gridSize + this.gridSize / 2,
-          sharp
-        );
-      };
-    };
-    
+    const group = new Konva.Group({
+      x,
+      y,
+      draggable: true,
+    });
+
+     (group as any).attrs.tokenId = tokenId;
+
+    const image = new Konva.Image({
+      image: img,
+      x: -size / 2,
+      y: -size / 2,
+      width: size,
+      height: size,
+      imageSmoothingEnabled: false,
+      perfectDrawEnabled: true,
+    });
+
+    group.add(image);
+
+    group.on('click', () => this.selectToken(group));
+
+    group.on('dragstart', () => {
+      this.selectToken(group);
+      if (this.transformer) {
+        this.transformer.visible(false);
+      }
+    });
+
+    group.on('dragmove', () => {
+      this.snapGroup(group);
+    });
+
+    group.on('dragend', () => {
+      if (this.transformer) {
+        this.transformer.visible(true);
+      }
+      this.savePlacedTokens();
+    });
+
+    group.on('transformend', () => {
+      this.savePlacedTokens();
+    });
+
+    this.tokenLayer.add(group);
+    this.tokenLayer.draw();
+
+    return group;
   }
 
-createToken(x: number, y: number, img: HTMLImageElement) {
+  // ================= SELECTION =================
 
-  const size = this.gridSize;
+  selectToken(group: Konva.Group) {
+    this.selectedToken = group;
+    this.attachTransformer(group);
 
-  const group = new Konva.Group({
-    x,
-    y,
-    draggable: true,
-  });
-
-  // --------------------------------------------------
-  // PLAIN SQUARE IMAGE TOKEN
-  // --------------------------------------------------
-
-  const image = new Konva.Image({
-    
-    image: img,
-
-    x: -size / 2,
-    y: -size / 2,
-    width: size,
-    height: size,
-
-    // keep it sharp
-    imageSmoothingEnabled: false,
-    perfectDrawEnabled: true,
-    
-  });
-
-  group.add(image);
-
-  // --------------------------------------------------
-  // EVENTS
-  // --------------------------------------------------
-
-  group.on('click', () => this.selectToken(group));
-
-  group.on('dragstart', () => {
-    this.selectToken(group);
-
-    if (this.transformer) {
-      this.transformer.visible(false);
-    }
-  });
-
-  group.on('dragmove', () => {
-    this.snapGroup(group);
-  });
-
-  group.on('dragend', () => {
     if (this.transformer) {
       this.transformer.visible(true);
+      this.transformer.forceUpdate();
     }
-  });
-
-  this.tokenLayer.add(group);
-  this.tokenLayer.draw();
-
-  return group;
-}
-
-
-
-
-  // ---------------- SELECTION & RESIZE ----------------
-
-selectToken(group: Konva.Group) {
-  this.selectedToken = group;
-  this.attachTransformer(group);
-
-  // ensure transformer is visible when selecting
-  if (this.transformer) {
-    this.transformer.visible(true);
-    this.transformer.forceUpdate();
-  }
-}
-
-
- attachTransformer(group: Konva.Group) {
-
-  if (this.transformer) {
-    this.transformer.destroy();
   }
 
-  this.transformer = new Konva.Transformer({
-    nodes: [group],
-
-    // only corner resize like Roll20
-    enabledAnchors: [
-      'top-left',
-      'top-right',
-      'bottom-left',
-      'bottom-right'
-    ],
-
-    rotateEnabled: false,
-    keepRatio: true,
-
-    // important for clean hitbox
-    ignoreStroke: true,
-    borderStroke: '#4a90e2',
-    anchorFill: '#4a90e2',
-    anchorSize: 8,
-
-    boundBoxFunc: (oldBox, newBox) => {
-
-      // keep perfect square
-      const size = Math.max(newBox.width, newBox.height);
-
-      return {
-        x: newBox.x,
-        y: newBox.y,
-        width: size,
-        height: size,
-        rotation: 0
-      };
+  attachTransformer(group: Konva.Group) {
+    if (this.transformer) {
+      this.transformer.destroy();
     }
-  });
 
-  // ---- SNAP RESIZE TO GRID ----
-this.transformer.on('transformend', () => {
+    this.transformer = new Konva.Transformer({
+      nodes: [group],
+      enabledAnchors: [
+        'top-left',
+        'top-right',
+        'bottom-left',
+        'bottom-right'
+      ],
+      rotateEnabled: false,
+      keepRatio: true,
+      ignoreStroke: true,
+      borderStroke: '#4a90e2',
+      anchorFill: '#4a90e2',
+      anchorSize: 8,
+    });
 
-  // get screen size
-  const box = group.getClientRect();
-
-  // ---- CRITICAL FIX ----
-  const stageScale = this.stage.scaleX();
-
-  // convert back to world/grid pixels
-  const current = box.width / stageScale;
-
-  // convert to grid cells
-  const cells = Math.round(current / this.gridSize);
-
-  // clamp to D&D sizes
-  const clamped = Math.min(4, Math.max(1, cells));
-
-  const target = clamped * this.gridSize;
-
-  const newScale = target / this.gridSize;
-
-  group.scale({ x: newScale, y: newScale });
-
-  this.snapGroup(group);
-});
-
-
-this.tokenLayer.add(this.transformer);
-this.transformer.moveToTop();
-this.tokenLayer.draw();
-
-}
-
-
-  // ---------------- POSITION ----------------
-
-snapGroup(group: Konva.Group) {
-
-  const pos = group.position();
-
-  const stageScale = this.stage.scaleX();
-
-  const scale = group.scaleX();
-  const cells = Math.round(scale);
-
-  // offset so large tokens center properly
-  const offset = (cells - 1) * this.gridSize / 2;
-
-  const snappedX =
-    Math.floor((pos.x - offset) / this.gridSize) * this.gridSize +
-    this.gridSize / 2 + offset;
-
-  const snappedY =
-    Math.floor((pos.y - offset) / this.gridSize) * this.gridSize +
-    this.gridSize / 2 + offset;
-
-  group.position({
-    x: snappedX,
-    y: snappedY
-  });
-}
-
-
-  // ---------------- HIGHLIGHT ----------------
-
-updateHighlight() {
-  // no-op for now – transformer handles selection UI
-}
-
-
-  // ---------------- ZOOM ----------------
-
-  onWheel(event: WheelEvent) {
-    event.preventDefault();
-
-    const oldScale = this.stage.scaleX();
-    const scaleBy = 1.1;
-
-    const newScale =
-      event.deltaY < 0
-        ? oldScale * scaleBy
-        : oldScale / scaleBy;
-
-    const clamped = Math.max(0.5, Math.min(2.5, newScale));
-
-    this.stage.scale({ x: clamped, y: clamped });
-    this.stage.draw();
+    this.tokenLayer.add(this.transformer);
+    this.transformer.moveToTop();
+    this.tokenLayer.draw();
   }
+
+  // ================= POSITION =================
+
+  snapGroup(group: Konva.Group) {
+    const pos = group.position();
+
+    const scale = group.scaleX();
+    const cells = Math.round(scale);
+
+    const offset = (cells - 1) * this.gridSize / 2;
+
+    const snappedX =
+      Math.floor((pos.x - offset) / this.gridSize) * this.gridSize +
+      this.gridSize / 2 + offset;
+
+    const snappedY =
+      Math.floor((pos.y - offset) / this.gridSize) * this.gridSize +
+      this.gridSize / 2 + offset;
+
+    group.position({
+      x: snappedX,
+      y: snappedY
+    });
+  }
+
+  updateHighlight() {}
+
+  // ================= ZOOM =================
 
   onResize() {
     this.stage.width(window.innerWidth);
@@ -417,46 +427,53 @@ updateHighlight() {
     this.stage.draw();
   }
 
+  // ================= DRAG DROP =================
+
   allowDrop(e: DragEvent) {
-  e.preventDefault();
-}
+    e.preventDefault();
+  }
 
-onDrop(e: DragEvent) {
-  e.preventDefault();
+  onDrop(e: DragEvent) {
+    e.preventDefault();
 
-  const data = e.dataTransfer?.getData('token');
-  if (!data) return;
+    const data = e.dataTransfer?.getData('token');
+    if (!data) return;
 
-  const token: TokenData = JSON.parse(data);
+    const token: TokenData = JSON.parse(data);
 
-  const img = new Image();
-  img.src = token.image;
+// find real image from token library
+const lib = this.tokenService.tokens();
+const meta = lib.find(x => x.id === token.id);   // ✔ use token.id
 
-  img.onload = () => {
+const img = new Image();
+img.src = meta?.image || token.image;            // ✔ fallback to dropped image
 
-    const sharp = this.prepareTokenImage(img);
 
-    sharp.onload = () => {
 
-      const cells =
-        this.tokenService.sizeToCells(token.size);
 
-      const size = cells * this.gridSize;
+    img.onload = () => {
+      const sharp = this.prepareTokenImage(img);
 
-      const group = this.createToken(
-        this.stage.getPointerPosition()!.x,
-        this.stage.getPointerPosition()!.y,
-        sharp
-      );
+      sharp.onload = () => {
 
-      // force correct scale
-      const scale = size / this.gridSize;
-      group.scale({ x: scale, y: scale });
+        const cells =
+          this.tokenService.sizeToCells(token.size);
 
-      this.snapGroup(group);
+        const size = cells * this.gridSize;
+
+        const group = this.createToken(
+          this.stage.getPointerPosition()!.x,
+          this.stage.getPointerPosition()!.y,
+          sharp,
+          token.id  
+        );
+
+        const scale = size / this.gridSize;
+        group.scale({ x: scale, y: scale });
+
+        this.snapGroup(group);
+        this.savePlacedTokens();
+      };
     };
-  };
-}
-
-
+  }
 }

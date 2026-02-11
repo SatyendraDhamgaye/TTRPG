@@ -9,3 +9,55 @@
 app-map-canvas {
   flex: 1;
 }
+
+.canvas-layout {
+  display: flex;
+  height: 100vh;
+  width: 100%;
+}
+
+.sidebar {
+  width: 260px;        // you can tweak later
+  flex-shrink: 0;
+}
+
+.canvas-content {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+
+.game-id-badge {
+  position: absolute;
+
+  /* 👇 THIS is the key change */
+  right: 320px;          /* width of your sidebar */
+  bottom: 6px;
+
+  transform: none;       /* remove center transform */
+
+  background: rgba(18, 18, 20, 0.92);
+  color: #e6e6e6;
+
+  padding: 5px 10px;
+  font-size: 11px;
+
+  border-radius: 8px 8px 0 0;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-bottom: none;
+
+  backdrop-filter: blur(6px);
+
+  box-shadow:
+    0 -4px 12px rgba(0,0,0,0.25),
+    inset 0 1px rgba(255,255,255,0.06);
+
+  letter-spacing: 0.3px;
+}
+
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translate(-50%, 6px); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
+}

@@ -1,13 +1,28 @@
 export interface Campaign {
+
   id: string;
+
   name: string;
   description: string;
 
-  cover: string;        // NEW
+  cover: string;
 
   createdAt: number;
   lastOpened: number;
 
+  // legacy – can be removed later
   tokens: any[];
-  map?: string;
+
+  // 👉 NEW BOARD STRUCTURE
+  board?: {
+    tokens: {
+      x: number;
+      y: number;
+      cells: number;
+    }[];
+
+    map: string | null;
+
+    version: number;
+  };
 }

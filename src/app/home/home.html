@@ -9,11 +9,15 @@
   </div>
 
   <!-- CREATE -->
-  <div class="create" *ngIf="showCreate">
-    <input [(ngModel)]="name" placeholder="Game name">
-    <input [(ngModel)]="description" placeholder="Description">
-    <button (click)="create()">Create</button>
-  </div>
+<div class="create" *ngIf="showCreate">
+  <input [(ngModel)]="name" placeholder="Game name">
+  <input [(ngModel)]="description" placeholder="Description">
+
+  <button (click)="create(); showCreate = false">
+    Create
+  </button>
+</div>
+
 
   <!-- LIST -->
   <div class="games">
@@ -21,7 +25,9 @@
     <div class="card" *ngFor="let c of campaigns">
 
       <div class="left">
-        <img class="thumb" [src]="c.cover">
+        <img class="thumb"
+     [src]="c.cover || 'assets/default-cover.jpg'">
+
       </div>
 
       <div class="mid">
@@ -53,6 +59,10 @@
     </div>
 
   </div>
+
+  <div class="empty" *ngIf="campaigns.length === 0">
+  No campaigns yet. Create your first game 💫
+</div>
 
 </div>
 

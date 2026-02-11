@@ -12,16 +12,26 @@ export const routes: Routes = [
   // HOME
   { path: '', component: HomeComponent },
 
-  // CHARACTER
+  // CHARACTER (standalone pages)
   { path: 'character/create', component: CharacterCreatorComponent },
   { path: 'character/view', component: CharacterViewerComponent },
   { path: 'character/view/:id', component: CharacterViewerComponent },
 
-  // VTT CANVAS  ← THIS IS THE REAL ONE
-  { path: 'canvas/:id', component: CanvasShellComponent },
+  // VTT CANVAS LAYOUT
+{
+  path: 'canvas/:id',
+  component: CanvasShellComponent,
+  children: [
 
-  // Optional redirect old links
+    { path: 'characters', component: CharacterViewerComponent },
+    { path: 'create-character', component: CharacterCreatorComponent }
+
+  ]
+}
+,
+
   { path: 'play/:id', redirectTo: 'canvas/:id' },
 
 ];
+
 

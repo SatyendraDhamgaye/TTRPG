@@ -1,4 +1,18 @@
-<div class="vtt-layout">
-  <app-map-canvas></app-map-canvas>
-  <app-canvas-sidebar></app-canvas-sidebar>
+<div class="canvas-layout">
+
+    <!-- 👇 MAKE CANVAS PERMANENT -->
+  <app-map-canvas
+    [campaignId]="campaignId">
+  </app-map-canvas>
+
+
+  <app-canvas-sidebar
+    [campaignId]="campaignId">
+  </app-canvas-sidebar>
+
+    <div class="game-id-badge">
+    Game: {{ campaignName }}
+  </div>
+
+
 </div>

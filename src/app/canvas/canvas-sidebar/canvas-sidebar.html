@@ -1,12 +1,22 @@
 <div class="sidebar">
 
+
+
   <!-- ================= TOP BAR ================= -->
+<!-- ================= TOP BAR ================= -->
 <div class="top-bar">
 
-  <i (click)="setMode('characters')"
-     [class.active]="mode === 'characters'"
-     title="Characters">👤</i>
+  <!-- 👉 REAL ROUTER NAVIGATION -->
+<i (click)="setMode('map')"
+   [class.active]="mode === 'map'"
+   title="Map">🗺</i>
 
+<i (click)="setMode('characters')"
+   [class.active]="mode === 'characters'"
+   title="Characters">👤</i>
+
+
+  <!-- EXISTING MODE SWITCHES -->
   <i (click)="setMode('tokens')"
      [class.active]="mode === 'tokens'"
      title="Tokens">🎴</i>
@@ -85,6 +95,11 @@
   </div>
 
   <!-- ================ OTHER MODES ================ -->
+
+  <div *ngIf="mode === 'map'" class="empty">
+  Map tools coming soon...
+</div>
+
 
   <div *ngIf="mode === 'characters'" class="empty">
     Characters coming soon...
