@@ -21,9 +21,9 @@
      [class.active]="mode === 'tokens'"
      title="Tokens">🎴</i>
 
-  <i (click)="setMode('pdfs')"
-     [class.active]="mode === 'pdfs'"
-     title="Handouts">📜</i>
+  <i (click)="setMode('monsters')"
+     [class.active]="mode === 'monsters'"
+     title="Monsters">🧟</i>
 
   <i (click)="setMode('music')"
      [class.active]="mode === 'music'"
@@ -94,6 +94,52 @@
 
   </div>
 
+
+<div *ngIf="mode === 'monsters'" class="mode-container">
+
+  <div class="search">
+    <input
+      placeholder="Search monsters..."
+      [(ngModel)]="monsterSearch"
+    />
+  </div>
+
+  <!-- Loader -->
+  <div *ngIf="loadingMonsters" class="loader">
+    <div class="spinner"></div>
+    <div class="loader-text">Loading monsters...</div>
+  </div>
+
+  <!-- List -->
+  <div *ngIf="!loadingMonsters" class="scroll-zone">
+    <div class="section-title">Monsters</div>
+
+    <div class="token-list">
+
+      <div
+        class="token-row"
+        *ngFor="let m of filteredMonsters"
+        draggable="true"
+        (dragstart)="dragMonster($event, m)"
+      >
+        <div class="img-frame">
+          <img
+            [src]="m.image"
+            (error)="m.image = 'compendium/monsters/images/default.png'"
+          >
+        </div>
+
+        <span>{{m.name}}</span>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+
+
+
   <!-- ================ OTHER MODES ================ -->
 
   <div *ngIf="mode === 'map'" class="empty">
@@ -105,10 +151,6 @@
     Characters coming soon...
   </div>
 
-  <div *ngIf="mode === 'pdfs'" class="empty">
-    Handouts & PDFs coming soon...
-  </div>
-
   <div *ngIf="mode === 'music'" class="empty">
     Music player coming soon...
   </div>
@@ -116,5 +158,7 @@
   <div *ngIf="mode === 'settings'" class="empty">
     Settings panel coming soon...
   </div>
+
+  
 
 </div>

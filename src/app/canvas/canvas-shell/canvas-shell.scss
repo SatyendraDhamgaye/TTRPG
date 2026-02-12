@@ -17,7 +17,7 @@ app-map-canvas {
 }
 
 .sidebar {
-  width: 260px;        // you can tweak later
+  width: 260px;
   flex-shrink: 0;
 }
 
@@ -27,17 +27,14 @@ app-map-canvas {
   position: relative;
 }
 
+/* ================= GAME BADGE ================= */
 
 .game-id-badge {
   position: absolute;
-
-  /* 👇 THIS is the key change */
-  right: 320px;          /* width of your sidebar */
+  right: 320px;
   bottom: 6px;
 
-  transform: none;       /* remove center transform */
-
-  background: rgba(18, 18, 20, 0.92);
+  background: rgba(18, 18, 20, 0.75);
   color: #e6e6e6;
 
   padding: 5px 10px;
@@ -57,7 +54,3 @@ app-map-canvas {
 }
 
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: translate(-50%, 6px); }
-  to   { opacity: 1; transform: translate(-50%, 0); }
-}

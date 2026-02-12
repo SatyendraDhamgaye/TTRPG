@@ -4,8 +4,7 @@ import { TokenService } from '../../services/token.service';
 import { TokenData } from '../../models/token.model';
 import { FormsModule } from '@angular/forms';
 import { ChangeDetectorRef } from '@angular/core';
-
-import { RouterLink, RouterLinkActive } from '@angular/router';
+import { MonsterService } from '../../services/monster.service';
 
 @Component({
   selector: 'app-canvas-sidebar',
@@ -14,9 +13,6 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
     CommonModule,
     FormsModule,
 
-    // for navigation
-    RouterLink,
-    RouterLinkActive
   ],
   templateUrl: './canvas-sidebar.html',
   styleUrls: ['./canvas-sidebar.scss']
@@ -30,23 +26,85 @@ export class CanvasSidebarComponent {
   image = '';
   search = '';
 
+  monsterSearch = '';
+selectedMonster: any = null;
+
+
   size: TokenData['size'] = 'medium';
 
   // signal from service
 tokens: any;
 
-mode: 'map' | 'tokens' | 'characters' | 'pdfs' | 'music' | 'settings' = 'map';
+mode: 'map' | 'tokens' | 'characters' | 'monsters' | 'music' | 'settings' = 'map';
 
   constructor(
     private tokenService: TokenService,
+    private monsterService: MonsterService,
     private cdr: ChangeDetectorRef
   ) {
       this.tokens = this.tokenService.tokens;
   }
 
-  setMode(m: any) {
-    this.mode = m;
+setMode(m: any) {
+  this.mode = m;
+
+  if (m === 'monsters') {
+    this.monsterService.load();
   }
+}
+
+
+
+
+  get filteredMonsters() {
+  const term = this.monsterSearch.trim().toLowerCase();
+  const monsters = this.monsterService.monsters();
+
+  if (!term) return monsters;
+
+  return monsters.filter(m =>
+    m.name.toLowerCase().includes(term)
+  );
+}
+
+selectMonster(m: any) {
+  this.selectedMonster = m;
+}
+
+dragMonster(e: DragEvent, monster: any) {
+
+  const token = {
+    id: crypto.randomUUID(),
+    name: monster.name,
+    image: monster.image,
+    size: this.convertSize(monster.size),
+    campaignId: this.campaignId ?? undefined
+  };
+
+  e.dataTransfer?.setData('token', JSON.stringify(token));
+}
+
+convertSize(size: string) {
+  switch (size) {
+    case 'tiny':
+    case 'small':
+    case 'medium':
+      return 'medium';
+    case 'large':
+      return 'large';
+    case 'huge':
+      return 'huge';
+    case 'gargantuan':
+      return 'gargantuan';
+    default:
+      return 'medium';
+  }
+}
+
+
+
+
+
 
   onFile(e: any) {
     const file = e.target.files[0];
@@ -114,6 +172,11 @@ mode: 'map' | 'tokens' | 'characters' | 'pdfs' | 'music' | 'settings' = 'map';
 
     this.cdr.detectChanges();
   }
+
+  get loadingMonsters() {
+  return this.monsterService.loading();
+}
+
 
   delete(id: string) {
     this.tokenService.remove(id);
