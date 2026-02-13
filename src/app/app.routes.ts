@@ -1,37 +1,29 @@
 import { Routes } from '@angular/router';
-import { MapCanvasComponent } from './canvas/map-canvas/map-canvas';
+import { CanvasShellComponent } from './canvas/canvas-shell/canvas-shell';
 import { CharacterCreatorComponent } from './character/character-creator/character-creator.component';
 import { CharacterViewerComponent } from './character/character-viewer/character-viewer.component';
 import { HomeComponent } from './home/home';
-import { CanvasShellComponent } from './canvas/canvas-shell/canvas-shell';
 
-
-
+// Central route table for top-level navigation.
 export const routes: Routes = [
-
-  // HOME
+  // Landing page for campaign management.
   { path: '', component: HomeComponent },
 
-  // CHARACTER (standalone pages)
+  // Character tools.
   { path: 'character/create', component: CharacterCreatorComponent },
   { path: 'character/view', component: CharacterViewerComponent },
   { path: 'character/view/:id', component: CharacterViewerComponent },
 
-  // VTT CANVAS LAYOUT
-{
-  path: 'canvas/:id',
-  component: CanvasShellComponent,
-  children: [
+  // Main VTT shell for a selected campaign.
+  {
+    path: 'canvas/:id',
+    component: CanvasShellComponent,
+    children: [
+      { path: 'characters', component: CharacterViewerComponent },
+      { path: 'create-character', component: CharacterCreatorComponent }
+    ]
+  },
 
-    { path: 'characters', component: CharacterViewerComponent },
-    { path: 'create-character', component: CharacterCreatorComponent }
-
-  ]
-}
-,
-
-  { path: 'play/:id', redirectTo: 'canvas/:id' },
-
+  // Legacy alias kept for backward compatibility.
+  { path: 'play/:id', redirectTo: 'canvas/:id' }
 ];
-
-

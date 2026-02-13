@@ -1,21 +1,20 @@
 import { Injectable } from '@angular/core';
-import { Campaign } from './campaign';
+import { Campaign, CampaignBoard } from './campaign';
 
 @Injectable({ providedIn: 'root' })
 export class CampaignStorageService {
-
-  private KEY = 'vtt_campaigns';
+  private readonly key = 'vtt_campaigns';
 
   getAll(): Campaign[] {
-    const raw = localStorage.getItem(this.KEY);
+    const raw = localStorage.getItem(this.key);
     return raw ? JSON.parse(raw) : [];
   }
 
-  saveAll(list: Campaign[]) {
-    localStorage.setItem(this.KEY, JSON.stringify(list));
+  saveAll(list: Campaign[]): void {
+    localStorage.setItem(this.key, JSON.stringify(list));
   }
 
-  private randomCover() {
+  private randomCover(): string {
     const n = Math.floor(Math.random() * 6) + 1;
     return `/covers/${n}.jpg`;
   }
@@ -34,10 +33,10 @@ export class CampaignStorageService {
       createdAt: Date.now(),
       lastOpened: Date.now(),
 
-      // legacy field (not used anymore but keep safe)
+      // Legacy field kept for old data compatibility.
       tokens: [],
 
-      // 👉 NEW board data
+      // Initial board state for this campaign.
       board: {
         tokens: [],
         map: null,
@@ -51,9 +50,9 @@ export class CampaignStorageService {
     return newCamp;
   }
 
-  update(camp: Campaign) {
+  update(camp: Campaign): void {
     const campaigns = this.getAll();
-    const i = campaigns.findIndex(c => c.id === camp.id);
+    const i = campaigns.findIndex((c) => c.id === camp.id);
 
     if (i !== -1) {
       campaigns[i] = camp;
@@ -61,14 +60,14 @@ export class CampaignStorageService {
     }
   }
 
-  delete(id: string) {
-    const filtered = this.getAll().filter(c => c.id !== id);
+  delete(id: string): void {
+    const filtered = this.getAll().filter((c) => c.id !== id);
     this.saveAll(filtered);
   }
 
-  markOpened(id: string) {
+  markOpened(id: string): void {
     const camps = this.getAll();
-    const c = camps.find(x => x.id === id);
+    const c = camps.find((x) => x.id === id);
 
     if (c) {
       c.lastOpened = Date.now();
@@ -76,19 +75,22 @@ export class CampaignStorageService {
     }
   }
 
-  // ================= NEW =================
-
   get(id: string): Campaign | undefined {
-    return this.getAll().find(c => c.id === id);
+    return this.getAll().find((c) => c.id === id);
   }
 
-  updateBoard(id: string, data: any) {
+  updateBoard(id: string, data: Partial<CampaignBoard>): void {
     const camps = this.getAll();
-    const camp = camps.find(c => c.id === id);
+    const camp = camps.find((c) => c.id === id);
 
-    if (!camp) return;
+    if (!camp) {
+      return;
+    }
 
     camp.board = {
+      tokens: [],
+      map: null,
+      version: 1,
       ...(camp.board || {}),
       ...data
     };

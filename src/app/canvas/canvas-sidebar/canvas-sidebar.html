@@ -1,83 +1,45 @@
 <div class="sidebar">
+  <!-- Top navigation for switching sidebar modes. -->
+  <div class="top-bar">
+    <i (click)="setMode('map')" [class.active]="mode === 'map'" title="Map">🗺</i>
+    <i (click)="setMode('characters')" [class.active]="mode === 'characters'" title="Characters">👤</i>
+    <i (click)="setMode('tokens')" [class.active]="mode === 'tokens'" title="Tokens">🎴</i>
+    <i (click)="setMode('monsters')" [class.active]="mode === 'monsters'" title="Monsters">🧟</i>
+    <i (click)="setMode('music')" [class.active]="mode === 'music'" title="Music">🎧</i>
+    <i (click)="setMode('settings')" [class.active]="mode === 'settings'" title="Settings">⚙️</i>
+  </div>
 
-
-
-  <!-- ================= TOP BAR ================= -->
-<!-- ================= TOP BAR ================= -->
-<div class="top-bar">
-
-  <!-- 👉 REAL ROUTER NAVIGATION -->
-<i (click)="setMode('map')"
-   [class.active]="mode === 'map'"
-   title="Map">🗺</i>
-
-<i (click)="setMode('characters')"
-   [class.active]="mode === 'characters'"
-   title="Characters">👤</i>
-
-
-  <!-- EXISTING MODE SWITCHES -->
-  <i (click)="setMode('tokens')"
-     [class.active]="mode === 'tokens'"
-     title="Tokens">🎴</i>
-
-  <i (click)="setMode('monsters')"
-     [class.active]="mode === 'monsters'"
-     title="Monsters">🧟</i>
-
-  <i (click)="setMode('music')"
-     [class.active]="mode === 'music'"
-     title="Music">🎧</i>
-
-  <i (click)="setMode('settings')"
-     [class.active]="mode === 'settings'"
-     title="Settings">⚙️</i>
-
-</div>
-
-
-  <!-- ================ TOKENS MODE ================ -->
+  <!-- Token library and token creator mode. -->
   <div *ngIf="mode === 'tokens'" class="mode-container">
-
-    <!-- SEARCH (ONLY ONE) -->
     <div class="search">
-      <input
-        placeholder="Search by name..."
-        [(ngModel)]="search"
-      />
+      <input placeholder="Search by name..." [(ngModel)]="search" />
     </div>
 
-
-    <!-- LIST -->
-   <div class="scroll-zone">
+    <div class="scroll-zone">
       <div class="section-title">Tokens</div>
 
       <div class="token-list">
-
         <div
           class="token-row"
           *ngFor="let t of filteredTokens"
           draggable="true"
           (dragstart)="dragStart($event, t)"
         >
-          <img [src]="t.image">
+          <img [src]="t.image" />
           <span>{{t.name}}</span>
           <button (click)="delete(t.id)">✕</button>
         </div>
-
       </div>
-      
     </div>
 
-    <!-- CREATOR -->
     <div class="creator">
       New Token
-      <input [(ngModel)]="name" placeholder="Name">
+      <input [(ngModel)]="name" placeholder="Name" />
 
-      <input type="file" (change)="onFile($event)">
+      <input type="file" (change)="onFile($event)" />
 
       <div class="preview">
-        <img *ngIf="image" [src]="image">
+        <img *ngIf="image" [src]="image" />
         <span *ngIf="!image">No Image</span>
       </div>
 
@@ -89,33 +51,24 @@
       </select>
 
       <button (click)="create()">Create</button>
-
     </div>
-
   </div>
 
-
+  <!-- Monster compendium mode. -->
 <div *ngIf="mode === 'monsters'" class="mode-container">
-
   <div class="search">
-    <input
-      placeholder="Search monsters..."
-      [(ngModel)]="monsterSearch"
-    />
+    <input placeholder="Search monsters..." [(ngModel)]="monsterSearch" />
   </div>
 
-  <!-- Loader -->
   <div *ngIf="loadingMonsters" class="loader">
     <div class="spinner"></div>
     <div class="loader-text">Loading monsters...</div>
   </div>
 
-  <!-- List -->
   <div *ngIf="!loadingMonsters" class="scroll-zone">
     <div class="section-title">Monsters</div>
 
     <div class="token-list">
-
       <div
         class="token-row"
         *ngFor="let m of filteredMonsters"
@@ -123,29 +76,20 @@
         (dragstart)="dragMonster($event, m)"
       >
         <div class="img-frame">
-          <img
-            [src]="m.image"
-            (error)="m.image = 'compendium/monsters/images/default.png'"
-          >
+          <img [src]="m.image" (error)="m.image = 'compendium/monsters/images/default.png'" />
         </div>
 
         <span>{{m.name}}</span>
       </div>
-
     </div>
   </div>
-
 </div>
 
-
-
-
-  <!-- ================ OTHER MODES ================ -->
+  <!-- Placeholder panels for unfinished modes. -->
 
   <div *ngIf="mode === 'map'" class="empty">
-  Map tools coming soon...
-</div>
-
+    Map tools coming soon...
+  </div>
 
   <div *ngIf="mode === 'characters'" class="empty">
     Characters coming soon...
@@ -158,7 +102,4 @@
   <div *ngIf="mode === 'settings'" class="empty">
     Settings panel coming soon...
   </div>
-
-  
-
 </div>

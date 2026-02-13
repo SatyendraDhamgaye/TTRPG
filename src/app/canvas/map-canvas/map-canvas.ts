@@ -1,67 +1,62 @@
-import { Component, AfterViewInit, Input, OnChanges, SimpleChanges } from '@angular/core';
+import { AfterViewInit, Component, Input, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { StageConfig } from 'konva/lib/Stage';
 import Konva from 'konva';
+import { StageConfig } from 'konva/lib/Stage';
+import { CoreShapeComponent, StageComponent } from 'ng2-konva';
 
 import { CampaignStorageService } from '../../campaign-storage.service';
-import { TokenService } from '../../services/token.service';
 import { TokenData } from '../../models/token.model';
+import { TokenService } from '../../services/token.service';
 
-import {
-  StageComponent,
-  CoreShapeComponent,
-} from 'ng2-konva';
+interface PlacedEntity {
+  id: string;
+  type: 'token' | 'monster';
+  x: number;
+  y: number;
+  cells: number;
+  data: TokenData | null;
+}
 
 @Component({
   selector: 'app-map-canvas',
   standalone: true,
-  imports: [
-    CommonModule,
-    StageComponent,
-    CoreShapeComponent,
-  ],
+  imports: [CommonModule, StageComponent, CoreShapeComponent],
   templateUrl: './map-canvas.html',
-  styleUrls: ['./map-canvas.scss'],
+  styleUrls: ['./map-canvas.scss']
 })
 export class MapCanvasComponent implements AfterViewInit, OnChanges {
-
-  // 👇 campaign now comes from shell (not router)
+  // Campaign id is provided by the shell route wrapper.
   @Input() campaignId: string | null = null;
 
   configStage: StageConfig = {
     width: window.innerWidth,
     height: window.innerHeight,
-    draggable: true,
+    draggable: true
   };
 
-  private tokensLoaded = false;
-
   gridSize = 100;
-
   mapWidth = 0;
   mapHeight = 0;
 
+  private tokensLoaded = false;
+  private readonly maxTokenCells = 4;
 
-  stage!: Konva.Stage;
+  private stage!: Konva.Stage;
+  private mapLayer!: Konva.Layer;
+  private gridLayer!: Konva.Layer;
+  private tokenLayer!: Konva.Layer;
+  private highlightLayer!: Konva.Layer;
 
-  mapLayer!: Konva.Layer;
-  gridLayer!: Konva.Layer;
-  highlightLayer!: Konva.Layer;
-  tokenLayer!: Konva.Layer;
-
-  transformer!: Konva.Transformer;
-  selectedToken: Konva.Group | null = null;
+  private transformer: Konva.Transformer | null = null;
+  private selectedToken: Konva.Group | null = null;
 
   constructor(
-    private store: CampaignStorageService,
-    private tokenService: TokenService
-  ) { }
+    private readonly store: CampaignStorageService,
+    private readonly tokenService: TokenService
+  ) {}
 
-  // ================= LIFECYCLE =================
-
-  ngAfterViewInit() {
-
-    // wait until ng2-konva actually registers stage
+  // Initialize Konva and campaign context after the view is rendered.
+  ngAfterViewInit(): void {
     setTimeout(() => {
       this.initKonva();
 
@@ -70,75 +65,75 @@ export class MapCanvasComponent implements AfterViewInit, OnChanges {
         this.loadPlacedTokens();
       }
     }, 200);
-    window.addEventListener('keydown', (e: KeyboardEvent) => {
-      this.onKeyDown(e);
-    });
 
+    window.addEventListener('keydown', this.onKeyDown);
+    window.addEventListener('resize', this.onResize);
   }
 
-  onKeyDown(event: KeyboardEvent) {
+  // React to campaign switches and reload board tokens.
+  ngOnChanges(changes: SimpleChanges): void {
+    if (!changes['campaignId'] || !this.campaignId) {
+      return;
+    }
 
-    if (event.key !== 'Delete') return;
+    this.tokensLoaded = false;
+    this.tokenService.setCampaign(this.campaignId);
+
+    if (this.tokenLayer) {
+      this.loadPlacedTokens();
+    } else {
+      setTimeout(() => this.loadPlacedTokens(), 250);
+    }
+  }
+
+  // Keyboard handler for deleting selected token.
+  private onKeyDown = (event: KeyboardEvent): void => {
+    if (event.key !== 'Delete') {
+      return;
+    }
 
     const active = document.activeElement;
     if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) {
       return;
     }
 
-    if (!this.selectedToken) return;
-
-    // remove transformer first
-    if (this.transformer) {
-      this.transformer.destroy();
+    if (!this.selectedToken) {
+      return;
     }
 
-    // remove token
+    this.transformer?.destroy();
+    this.transformer = null;
     this.selectedToken.destroy();
     this.selectedToken = null;
 
     this.tokenLayer.draw();
-
     this.savePlacedTokens();
-  }
+  };
 
-
-
-
-
-  ngOnChanges(changes: SimpleChanges) {
-
-    if (!changes['campaignId'] || !this.campaignId) return;
-
-    this.tokensLoaded = false;
-    this.tokenService.setCampaign(this.campaignId);
-
-    // 👉 only load if konva already ready
-    if (this.tokenLayer) {
-      this.loadPlacedTokens();
-    } else {
-      // wait until initKonva finishes
-      setTimeout(() => this.loadPlacedTokens(), 250);
-    }
-  }
-
-
-  // ================= INIT =================
-
-  initKonva() {
-    if (!(window as any).Konva?.stages?.length) {
-      console.warn('Konva stage not ready yet');
+  // Window resize handler to keep stage viewport in sync.
+  private onResize = (): void => {
+    if (!this.stage) {
       return;
     }
-    Konva.pixelRatio = window.devicePixelRatio || 1;
 
-    this.stage = (window as any).Konva.stages[0];
-    // dark background like Roll20
+    this.stage.width(window.innerWidth);
+    this.stage.height(window.innerHeight);
+    this.stage.draw();
+  };
+
+  // Build references for layers and wire stage events.
+  private initKonva(): void {
+    const globalKonva = (window as any).Konva;
+    if (!globalKonva?.stages?.length) {
+      console.warn('Konva stage is not ready yet.');
+      return;
+    }
+
+    Konva.pixelRatio = window.devicePixelRatio || 1;
+    this.stage = globalKonva.stages[0];
     this.stage.container().style.backgroundColor = '#13151c';
 
-
-
     const layers = this.stage.getLayers();
-
     this.mapLayer = layers[0];
     this.gridLayer = layers[1];
     this.highlightLayer = layers[2];
@@ -147,343 +142,253 @@ export class MapCanvasComponent implements AfterViewInit, OnChanges {
     this.buildGrid();
     this.loadMap();
 
-    this.stage.on('mousedown', (e: any) => {
-      if (e.target === this.stage) {
+    this.stage.on('mousedown', (event: Konva.KonvaEventObject<MouseEvent>) => {
+      if (event.target === this.stage) {
         this.selectedToken = null;
         this.updateHighlight();
       }
     });
-
-    window.addEventListener('resize', () => this.onResize());
   }
 
-  updateGridSize(newSize: number) {
+  // Update grid size and re-snap existing tokens.
+  updateGridSize(newSize: number): void {
     this.gridSize = newSize;
-
     this.buildGrid();
 
-    // re-snap all tokens to new grid
-    this.tokenLayer.getChildren().forEach((g: any) => {
-      this.snapGroup(g);
+    this.tokenLayer?.getChildren().forEach((node) => {
+      if (node instanceof Konva.Group) {
+        this.snapGroup(node);
+      }
     });
 
-    this.tokenLayer.draw();
+    this.tokenLayer?.draw();
   }
 
-
-  onWheel(event: WheelEvent) {
+  // Mouse wheel zoom with clamped min and max scale.
+  onWheel(event: WheelEvent): void {
     event.preventDefault();
 
     const oldScale = this.stage.scaleX();
     const scaleBy = 1.1;
-
-    const newScale =
-      event.deltaY < 0
-        ? oldScale * scaleBy
-        : oldScale / scaleBy;
-
-    const clamped = Math.max(0.5, Math.min(2.5, newScale));
+    const nextScale = event.deltaY < 0 ? oldScale * scaleBy : oldScale / scaleBy;
+    const clamped = Math.max(0.5, Math.min(2.5, nextScale));
 
     this.stage.scale({ x: clamped, y: clamped });
     this.stage.draw();
   }
 
-
-  // ================= LOAD / SAVE =================
-
-  loadPlacedTokens() {
-
-
-    if (this.tokensLoaded) {
-      console.log('Tokens already loaded. Skipping.');
+  // Load placed token instances for the active campaign.
+  private loadPlacedTokens(): void {
+    if (this.tokensLoaded || !this.tokenLayer || !this.campaignId) {
       return;
     }
 
-    if (!this.tokenLayer) return;
-    if (!this.campaignId) return;
+    const campaign = this.store.get(this.campaignId);
+    if (!campaign?.board?.tokens) {
+      this.tokensLoaded = true;
+      return;
+    }
 
     this.tokensLoaded = true;
-
-    // ---- SAFETY ----
-    if (!this.tokenLayer) {
-      console.log('Token layer not ready yet');
-      return;
-    }
-
-    if (!this.campaignId) return;
-
-    const camp = this.store.get(this.campaignId);
-
-    console.log('Loading campaign →', camp);
-
-    if (!camp?.board?.tokens) {
-      console.log('No tokens stored for campaign');
-      return;
-    }
-
-    // clear old tokens
     this.tokenLayer.destroyChildren();
 
-    // get token library from sidebar service
     const library = this.tokenService.tokens();
+    campaign.board.tokens.forEach((token: any) => {
+      const image = new Image();
 
-    console.log('Token library →', library);
-    console.log('Placed tokens →', camp.board.tokens);
+      if (token.type === 'monster' && token.data?.image) {
+        image.src = token.data.image;
+      } else {
+        const meta = library.find((item) => item.id === token.id);
+        image.src = meta?.image || '/tokens/default.png';
+      }
 
-    camp.board.tokens.forEach((t: any) => {
-
-  const img = new Image();
-
-  if (t.type === 'monster' && t.data) {
-    img.src = t.data.image;
-  } else {
-    const meta = library.find((x: any) => x.id === t.id);
-    img.src = meta?.image || '/tokens/default.png';
+      image.onload = () => {
+        const prepared = this.prepareTokenImage(image);
+        prepared.onload = () => {
+          const group = this.createToken(token.x, token.y, prepared, token.id);
+          group.scale({ x: token.cells, y: token.cells });
+          (group as any).attrs.entityType = token.type;
+          (group as any).attrs.entityData = token.data;
+        };
+      };
+    });
   }
 
-  img.onload = () => {
+  // Persist placed token instances to campaign board state.
+  private savePlacedTokens(): void {
+    if (!this.campaignId) {
+      return;
+    }
 
-    const sharp = this.prepareTokenImage(img);
+    const placed: PlacedEntity[] = [];
 
-    sharp.onload = () => {
+    this.tokenLayer.getChildren().forEach((node) => {
+      if (!(node instanceof Konva.Group)) {
+        return;
+      }
 
-      const group = this.createToken(
-        t.x,
-        t.y,
-        sharp,
-        t.id
-      );
-
-      group.scale({
-        x: t.cells,
-        y: t.cells
-      });
-
-      (group as any).attrs.entityType = t.type;
-      (group as any).attrs.entityData = t.data;
-    };
-  };
-});
-
-  }
-
-
-
-  savePlacedTokens() {
-    if (!this.campaignId) return;
-
-    const placed: any[] = [];
-
-    this.tokenLayer.getChildren().forEach((g: any) => {
-      const scale = g.scaleX();
-      const cells = Math.round(scale);
-
+      const cells = Math.round(node.scaleX());
       placed.push({
-        id: (g as any).attrs.tokenId,
-        type: (g as any).attrs.entityType || 'token',
-        x: g.x(),
-        y: g.y(),
+        id: (node as any).attrs.tokenId,
+        type: (node as any).attrs.entityType || 'token',
+        x: node.x(),
+        y: node.y(),
         cells,
-        data: (g as any).attrs.entityData || null
+        data: (node as any).attrs.entityData || null
       });
-
     });
 
-    this.store.updateBoard(this.campaignId, {
-      tokens: placed
-    });
+    this.store.updateBoard(this.campaignId, { tokens: placed });
   }
 
-  // ================= GRID =================
-
-  buildGrid() {
-
-    if (!this.mapWidth || !this.mapHeight) return;
+  // Build grid lines based on loaded map dimensions.
+  private buildGrid(): void {
+    if (!this.mapWidth || !this.mapHeight || !this.gridLayer) {
+      return;
+    }
 
     this.gridLayer.destroyChildren();
 
-    // vertical lines
     for (let x = 0; x <= this.mapWidth; x += this.gridSize) {
-      const line = new Konva.Line({
-        points: [x, 0, x, this.mapHeight],
-        stroke: '#888',
-        strokeWidth: 1,
-      });
-
-      this.gridLayer.add(line);
+      this.gridLayer.add(
+        new Konva.Line({
+          points: [x, 0, x, this.mapHeight],
+          stroke: '#888',
+          strokeWidth: 1
+        })
+      );
     }
 
-    // horizontal lines
     for (let y = 0; y <= this.mapHeight; y += this.gridSize) {
-      const line = new Konva.Line({
-        points: [0, y, this.mapWidth, y],
-        stroke: '#888',
-        strokeWidth: 1,
-      });
-
-      this.gridLayer.add(line);
+      this.gridLayer.add(
+        new Konva.Line({
+          points: [0, y, this.mapWidth, y],
+          stroke: '#888',
+          strokeWidth: 1
+        })
+      );
     }
 
     this.gridLayer.draw();
   }
 
+  // Load and render current map image.
+  private loadMap(): void {
+    const image = new Image();
+    image.src = '/maps/battleMap001.jpeg';
 
-  // ================= MAP =================
+    image.onload = () => {
+      this.mapWidth = image.width;
+      this.mapHeight = image.height;
 
-  loadMap() {
-    const img = new Image();
-    img.src = '/maps/battleMap001.jpeg';
+      this.mapLayer.add(
+        new Konva.Image({
+          image,
+          x: 0,
+          y: 0,
+          width: image.width,
+          height: image.height,
+          listening: false
+        })
+      );
 
-    img.onload = () => {
-
-      this.mapWidth = img.width;
-      this.mapHeight = img.height;
-
-      const map = new Konva.Image({
-        image: img,
-        x: 0,
-        y: 0,
-        width: img.width,
-        height: img.height,
-        listening: false,
-      });
-
-      this.mapLayer.add(map);
       this.mapLayer.draw();
-
-      // rebuild grid AFTER map loads
       this.buildGrid();
     };
   }
 
-
-  // ================= IMAGE PREP =================
-
-  prepareTokenImage(source: HTMLImageElement): HTMLImageElement {
+  // Normalize token image into a centered square texture.
+  private prepareTokenImage(source: HTMLImageElement): HTMLImageElement {
     const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d')!;
-
+    const context = canvas.getContext('2d');
     const target = 256;
 
     canvas.width = target;
     canvas.height = target;
 
-    ctx.imageSmoothingEnabled = true;
+    if (!context) {
+      return source;
+    }
+
+    context.imageSmoothingEnabled = true;
 
     const size = Math.min(source.width, source.height);
     const sx = (source.width - size) / 2;
     const sy = (source.height - size) / 2;
+    context.drawImage(source, sx, sy, size, size, 0, 0, target, target);
 
-    ctx.drawImage(
-      source,
-      sx, sy, size, size,
-      0, 0, target, target
-    );
-
-    const out = new Image();
-    out.src = canvas.toDataURL();
-
-    return out;
+    const output = new Image();
+    output.src = canvas.toDataURL();
+    return output;
   }
 
-  // ================= TOKEN CREATION =================
-
-  createToken(x: number, y: number, img: HTMLImageElement, tokenId?: string) {
-
+  // Create interactive token group and attach all token behavior.
+  private createToken(x: number, y: number, image: HTMLImageElement, tokenId?: string): Konva.Group {
     const size = this.gridSize;
 
-    const group = new Konva.Group({
-      x,
-      y,
-      draggable: true,
-    });
-
+    const group = new Konva.Group({ x, y, draggable: true });
     (group as any).attrs.tokenId = tokenId;
 
-    const image = new Konva.Image({
-      image: img,
-      x: -size / 2,
-      y: -size / 2,
-      width: size,
-      height: size,
-      imageSmoothingEnabled: false,
-      perfectDrawEnabled: true,
-    });
-
-    group.add(image);
+    group.add(
+      new Konva.Image({
+        image,
+        x: -size / 2,
+        y: -size / 2,
+        width: size,
+        height: size,
+        imageSmoothingEnabled: false,
+        perfectDrawEnabled: true
+      })
+    );
 
     group.on('click', () => this.selectToken(group));
 
     group.on('dragstart', () => {
       this.selectToken(group);
-      if (this.transformer) {
-        this.transformer.visible(false);
-      }
+      this.transformer?.visible(false);
     });
 
-    group.on('dragmove', () => {
-      this.snapGroup(group);
-    });
+    group.on('dragmove', () => this.snapGroup(group));
 
     group.on('dragend', () => {
-      if (this.transformer) {
-        this.transformer.visible(true);
-      }
+      this.transformer?.visible(true);
       this.savePlacedTokens();
     });
 
     group.on('transformend', () => {
-
-      const rawScale = group.scaleX();
-      const snappedCells = Math.max(1, Math.min(4, Math.round(rawScale)));
-
-      group.scale({
-        x: snappedCells,
-        y: snappedCells
-      });
-
+      const snappedCells = Math.max(1, Math.min(this.maxTokenCells, Math.round(group.scaleX())));
+      group.scale({ x: snappedCells, y: snappedCells });
       this.snapGroup(group);
       this.savePlacedTokens();
     });
 
-
     this.tokenLayer.add(group);
     this.tokenLayer.draw();
-
     return group;
   }
 
-  // ================= SELECTION =================
-
-  selectToken(group: Konva.Group) {
+  // Select token and show transformer controls.
+  private selectToken(group: Konva.Group): void {
     this.selectedToken = group;
     this.attachTransformer(group);
-
-    if (this.transformer) {
-      this.transformer.visible(true);
-      this.transformer.forceUpdate();
-    }
+    this.transformer?.visible(true);
+    this.transformer?.forceUpdate();
   }
 
-  attachTransformer(group: Konva.Group) {
-    if (this.transformer) {
-      this.transformer.destroy();
-    }
+  // Attach transformer handles to a single token group.
+  private attachTransformer(group: Konva.Group): void {
+    this.transformer?.destroy();
 
     this.transformer = new Konva.Transformer({
       nodes: [group],
-      enabledAnchors: [
-        'top-left',
-        'top-right',
-        'bottom-left',
-        'bottom-right'
-      ],
+      enabledAnchors: ['top-left', 'top-right', 'bottom-left', 'bottom-right'],
       rotateEnabled: false,
       keepRatio: true,
       ignoreStroke: true,
       borderStroke: '#4a90e2',
       anchorFill: '#4a90e2',
-      anchorSize: 8,
+      anchorSize: 8
     });
 
     this.tokenLayer.add(this.transformer);
@@ -491,96 +396,64 @@ export class MapCanvasComponent implements AfterViewInit, OnChanges {
     this.tokenLayer.draw();
   }
 
-  // ================= POSITION =================
-
-  snapGroup(group: Konva.Group) {
+  // Snap token center based on current grid and token size.
+  private snapGroup(group: Konva.Group): void {
     const pos = group.position();
-
-    const scale = group.scaleX();
-    const cells = Math.round(scale);
-
-    const offset = (cells - 1) * this.gridSize / 2;
+    const cells = Math.round(group.scaleX());
+    const offset = ((cells - 1) * this.gridSize) / 2;
 
     const snappedX =
-      Math.floor((pos.x - offset) / this.gridSize) * this.gridSize +
-      this.gridSize / 2 + offset;
-
+      Math.floor((pos.x - offset) / this.gridSize) * this.gridSize + this.gridSize / 2 + offset;
     const snappedY =
-      Math.floor((pos.y - offset) / this.gridSize) * this.gridSize +
-      this.gridSize / 2 + offset;
+      Math.floor((pos.y - offset) / this.gridSize) * this.gridSize + this.gridSize / 2 + offset;
 
-    group.position({
-      x: snappedX,
-      y: snappedY
-    });
+    group.position({ x: snappedX, y: snappedY });
   }
 
-  updateHighlight() { }
-
-  // ================= ZOOM =================
-
-  onResize() {
-    this.stage.width(window.innerWidth);
-    this.stage.height(window.innerHeight);
-    this.stage.draw();
+  // Placeholder for future tile/range highlight overlays.
+  private updateHighlight(): void {
+    if (!this.highlightLayer) {
+      return;
+    }
   }
 
-  // ================= DRAG DROP =================
-
-  allowDrop(e: DragEvent) {
-    e.preventDefault();
+  // Allow external drag source to drop token payloads.
+  allowDrop(event: DragEvent): void {
+    event.preventDefault();
   }
 
-  onDrop(e: DragEvent) {
-    e.preventDefault();
+  // Create token entity from sidebar drag payload.
+  onDrop(event: DragEvent): void {
+    event.preventDefault();
 
-    const data = e.dataTransfer?.getData('token');
-    if (!data) return;
+    const data = event.dataTransfer?.getData('token');
+    if (!data) {
+      return;
+    }
 
     const token: TokenData = JSON.parse(data);
+    const library = this.tokenService.tokens();
+    const meta = library.find((item) => item.id === token.id);
 
-    // find real image from token library
-    const lib = this.tokenService.tokens();
-    const meta = lib.find(x => x.id === token.id);
+    const image = new Image();
+    image.src = meta?.image || token.image;
 
-    const img = new Image();
-    img.src = meta?.image || token.image;
+    image.onload = () => {
+      const prepared = this.prepareTokenImage(image);
 
-    img.onload = () => {
+      prepared.onload = () => {
+        const position = this.stage.getRelativePointerPosition();
+        if (!position) {
+          return;
+        }
 
-      const sharp = this.prepareTokenImage(img);
-
-      sharp.onload = () => {
-
-        // convert mouse position to world coordinates
-        const pointer = this.stage.getPointerPosition();
-        if (!pointer) return;
-
-        const pos = this.stage.getRelativePointerPosition();
-        if (!pos) return;
-
-
-        // determine cell size (1–4 etc)
         const cells = this.tokenService.sizeToCells(token.size);
+        const group = this.createToken(position.x, position.y, prepared, token.id);
 
-        // create token at world position
-        const group = this.createToken(
-          pos.x,
-          pos.y,
-          sharp,
-          token.id
-        );
         (group as any).attrs.entityType = 'monster';
-(group as any).attrs.entityData = token; // store full monster data
+        (group as any).attrs.entityData = token;
 
-
-        // apply integer scale directly (no float math)
-        group.scale({
-          x: cells,
-          y: cells
-        });
-
-        // snap after scaling
+        group.scale({ x: cells, y: cells });
         this.snapGroup(group);
 
         this.tokenLayer.draw();
@@ -588,5 +461,4 @@ export class MapCanvasComponent implements AfterViewInit, OnChanges {
       };
     };
   }
-
 }

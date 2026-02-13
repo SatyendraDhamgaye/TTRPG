@@ -1,18 +1,13 @@
 <div class="canvas-layout">
-
-    <!-- 👇 MAKE CANVAS PERMANENT -->
-  <app-map-canvas
-    [campaignId]="campaignId">
+  <!-- Main map canvas for the active campaign. -->
+  <app-map-canvas [campaignId]="campaignId">
   </app-map-canvas>
 
-
-  <app-canvas-sidebar
-    [campaignId]="campaignId">
+  <!-- Sidebar with token, monster, and utility panels. -->
+  <app-canvas-sidebar [campaignId]="campaignId">
   </app-canvas-sidebar>
 
-    <div class="game-id-badge">
+  <div class="game-id-badge">
     Game: {{ campaignName }}
   </div>
-
-
 </div>

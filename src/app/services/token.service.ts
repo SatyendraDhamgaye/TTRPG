@@ -9,15 +9,14 @@ interface CampaignTokenStore {
   providedIn: 'root'
 })
 export class TokenService {
-
-  // full database of tokens by campaign
+  // Full token database, grouped by campaign id.
   private store = signal<CampaignTokenStore>({});
 
-  // currently active campaign
+  // Currently active campaign in canvas context.
   private activeCampaign = signal<string | null>(null);
 
-  // 👉 tokens of current campaign (what sidebar uses)
-  tokens = computed(() => {
+  // Token list for the active campaign.
+  readonly tokens = computed(() => {
     const id = this.activeCampaign();
     if (!id) return [];
 
@@ -28,16 +27,16 @@ export class TokenService {
     this.load();
   }
 
-  setCampaign(id: string | null) {
+  setCampaign(id: string | null): void {
     this.activeCampaign.set(id);
   }
 
-  add(token: TokenData & { campaignId?: string }) {
+  add(token: TokenData & { campaignId?: string }): void {
     const id = token.campaignId || this.activeCampaign();
 
     if (!id) return;
 
-    this.store.update(all => {
+    this.store.update((all) => {
       const list = all[id] || [];
 
       return {
@@ -49,16 +48,16 @@ export class TokenService {
     this.save();
   }
 
-  remove(id: string) {
+  remove(id: string): void {
     const camp = this.activeCampaign();
     if (!camp) return;
 
-    this.store.update(all => {
+    this.store.update((all) => {
       const list = all[camp] || [];
 
       return {
         ...all,
-        [camp]: list.filter(x => x.id !== id)
+        [camp]: list.filter((x) => x.id !== id)
       };
     });
 
@@ -66,7 +65,7 @@ export class TokenService {
   }
 
   sizeToCells(size: string): number {
-    switch(size) {
+    switch (size) {
       case 'medium': return 1;
       case 'large': return 2;
       case 'huge': return 3;
@@ -75,16 +74,13 @@ export class TokenService {
     }
   }
 
-  // ===== PERSISTENCE =====
-
-  private save() {
-    localStorage.setItem(
-      'vtt_tokens',
-      JSON.stringify(this.store())
-    );
+  // Persist token store to localStorage.
+  private save(): void {
+    localStorage.setItem('vtt_tokens', JSON.stringify(this.store()));
   }
 
-  private load() {
+  // Load token store from localStorage.
+  private load(): void {
     try {
       const raw = localStorage.getItem('vtt_tokens');
       if (!raw) return;

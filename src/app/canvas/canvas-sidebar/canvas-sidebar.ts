@@ -1,91 +1,66 @@
 import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+
 import { TokenService } from '../../services/token.service';
 import { TokenData } from '../../models/token.model';
-import { FormsModule } from '@angular/forms';
-import { ChangeDetectorRef } from '@angular/core';
 import { MonsterService } from '../../services/monster.service';
+import { MonsterData } from '../../models/monster.model';
+
+type SidebarMode = 'map' | 'tokens' | 'characters' | 'monsters' | 'music' | 'settings';
 
 @Component({
   selector: 'app-canvas-sidebar',
   standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-
-  ],
+  imports: [CommonModule, FormsModule],
   templateUrl: './canvas-sidebar.html',
   styleUrls: ['./canvas-sidebar.scss']
 })
 export class CanvasSidebarComponent {
-
-  // receive from shell
+  // Campaign scope is provided by the shell component.
   @Input() campaignId: string | null = null;
 
   name = '';
   image = '';
   search = '';
-
   monsterSearch = '';
-selectedMonster: any = null;
-
-
   size: TokenData['size'] = 'medium';
+  mode: SidebarMode = 'map';
 
-  // signal from service
-tokens: any;
-
-mode: 'map' | 'tokens' | 'characters' | 'monsters' | 'music' | 'settings' = 'map';
+  // Reactive token collection for currently selected campaign.
+  readonly tokens: () => TokenData[];
 
   constructor(
     private tokenService: TokenService,
-    private monsterService: MonsterService,
-    private cdr: ChangeDetectorRef
+    private monsterService: MonsterService
   ) {
-      this.tokens = this.tokenService.tokens;
+    this.tokens = this.tokenService.tokens;
   }
 
-setMode(m: any) {
-  this.mode = m;
+  // Switch sidebar module and lazily load monster data when needed.
+  setMode(mode: SidebarMode): void {
+    this.mode = mode;
 
-  if (m === 'monsters') {
-    this.monsterService.load();
+    if (mode === 'monsters') {
+      this.monsterService.load();
+    }
   }
-}
 
+  // Monster list filtered by search term.
+  get filteredMonsters(): MonsterData[] {
+    const term = this.monsterSearch.trim().toLowerCase();
+    const monsters = this.monsterService.monsters();
 
+    if (!term) {
+      return monsters;
+    }
 
+    return monsters.filter((monster) => monster.name.toLowerCase().includes(term));
+  }
 
-  get filteredMonsters() {
-  const term = this.monsterSearch.trim().toLowerCase();
-  const monsters = this.monsterService.monsters();
-
-  if (!term) return monsters;
-
-  return monsters.filter(m =>
-    m.name.toLowerCase().includes(term)
-  );
-}
-
-selectMonster(m: any) {
-  this.selectedMonster = m;
-}
-
-dragMonster(e: DragEvent, monster: any) {
-
-  const token = {
-    id: crypto.randomUUID(),
-    name: monster.name,
-    image: monster.image,
-    size: this.convertSize(monster.size),
-    campaignId: this.campaignId ?? undefined
-  };
-
-  e.dataTransfer?.setData('token', JSON.stringify(token));
-}
-
-convertSize(size: string) {
-  switch (size) {
+  // Convert monster size categories to token scaling categories.
+  private convertSize(size: string): TokenData['size'] {
+    switch (size) {
     case 'tiny':
     case 'small':
     case 'medium':
@@ -99,49 +74,56 @@ convertSize(size: string) {
     default:
       return 'medium';
   }
-}
+  }
 
-
-
-
-
-
-  onFile(e: any) {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-
-    reader.onload = () => {
-      setTimeout(() => {
-        this.image = reader.result as string;
-        this.cdr.markForCheck();
-        this.cdr.detectChanges();
-      });
+  // Begin drag operation for a compendium monster token.
+  dragMonster(event: DragEvent, monster: MonsterData): void {
+    const token = {
+      id: crypto.randomUUID(),
+      name: monster.name,
+      image: monster.image,
+      size: this.convertSize(monster.size),
+      campaignId: this.campaignId ?? undefined
     };
 
+    event.dataTransfer?.setData('token', JSON.stringify(token));
+  }
+
+  // Load local file as a data URL for custom token creation.
+  onFile(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      this.image = (reader.result as string) || '';
+    };
     reader.readAsDataURL(file);
   }
 
-  get filteredTokens() {
+  // Token list filtered by prefix matching against each search word.
+  get filteredTokens(): TokenData[] {
     const term = this.search.trim().toLowerCase();
 
-    if (!term) return this.tokens();
+    if (!term) {
+      return this.tokens();
+    }
 
     const words: string[] = term.split(' ').filter((w: string) => w);
 
-    return this.tokens().filter((t: any) => {
-
-      const name: string = t.name.toLowerCase();
-
+    return this.tokens().filter((token) => {
+      const name = token.name.toLowerCase();
       return words.every((w: string) =>
         name.split(' ').some((nw: string) => nw.startsWith(w))
       );
-
     });
   }
 
-  create() {
+  // Create a campaign-scoped custom token entry.
+  create(): void {
     if (!this.image) {
       alert('Please select image first');
       return;
@@ -152,8 +134,6 @@ convertSize(size: string) {
       name: this.name || 'Token',
       image: this.image,
       size: this.size,
-
-      // important fix
       campaignId: this.campaignId ?? undefined
     };
 
@@ -169,20 +149,20 @@ convertSize(size: string) {
     if (fileInput) {
       fileInput.value = '';
     }
-
-    this.cdr.detectChanges();
   }
 
-  get loadingMonsters() {
-  return this.monsterService.loading();
-}
+  // Loading state for monster dataset fetch and image validation.
+  get loadingMonsters(): boolean {
+    return this.monsterService.loading();
+  }
 
-
-  delete(id: string) {
+  // Remove a custom token from current campaign library.
+  delete(id: string): void {
     this.tokenService.remove(id);
   }
 
-  dragStart(e: DragEvent, token: TokenData) {
-    e.dataTransfer?.setData('token', JSON.stringify(token));
+  // Begin drag operation for an existing token.
+  dragStart(event: DragEvent, token: TokenData): void {
+    event.dataTransfer?.setData('token', JSON.stringify(token));
   }
 }
