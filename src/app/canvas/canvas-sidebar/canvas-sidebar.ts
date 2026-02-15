@@ -10,6 +10,9 @@ import { SpellService } from '../../services/spell.service';
 import { Spell } from '../../models/spell.model';
 import { MusicService } from '../../services/music.service';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { RuleService } from '../../services/rule.service';
+import { RuleData } from '../../models/rule.model';
+
 
 
 type SidebarMode =
@@ -19,6 +22,7 @@ type SidebarMode =
   | 'monsters'
   | 'spells'
   | 'music'
+  | 'rules'
   | 'settings';
 
 @Component({
@@ -42,6 +46,10 @@ export class CanvasSidebarComponent {
   private readonly monsterSearchTerm = signal('');
   private readonly spellSearchTerm = signal('');
   private readonly brokenMonsterImageIds = signal<Set<string>>(new Set());
+  ruleSearch = '';
+private readonly ruleSearchTerm = signal('');
+expandedRule: string | null = null;
+
 
 
 
@@ -54,6 +62,7 @@ export class CanvasSidebarComponent {
     private monsterService: MonsterService,
   private spellService: SpellService,
   private musicService: MusicService,   
+  private ruleService: RuleService,
   private sanitizer: DomSanitizer
   ) {
     this.tokens = this.tokenService.tokens;
@@ -74,6 +83,11 @@ setMode(mode: SidebarMode): void {
   if (mode === 'music') {
   this.musicService.setCampaign(this.campaignId);
 }
+
+if (mode === 'rules') {
+  this.ruleService.load();
+}
+
 
 }
 
@@ -161,6 +175,86 @@ removeMusic(id: string): void {
 
 
 
+readonly filteredRules = computed(() => {
+  const term = this.ruleSearchTerm().trim().toLowerCase();
+  const rules = this.ruleService.rules();
+
+  if (!term) return rules;
+
+  return rules.filter(rule =>
+    rule.name.toLowerCase().includes(term)
+  );
+});
+
+onRuleSearchChange(value: string): void {
+  this.ruleSearch = value;
+  this.ruleSearchTerm.set(value);
+}
+
+toggleRule(name: string): void {
+  this.expandedRule =
+    this.expandedRule === name ? null : name;
+}
+
+get loadingRules(): boolean {
+  return this.ruleService.loading();
+}
+
+isString(entry: any): entry is string {
+  return typeof entry === 'string';
+}
+
+isList(entry: any): entry is { type: string; items: string[] } {
+  return entry && entry.type === 'list';
+}
+
+isTable(entry: any): entry is { type: string; colLabels: string[]; rows: string[][] } {
+  return entry && entry.type === 'table';
+}
+
+formatRuleEntry(entry: any): string {
+  if (!entry) return '';
+
+  if (typeof entry === 'string') {
+    return this.parseRuleTags(entry);
+  }
+
+  if (entry.entries && Array.isArray(entry.entries)) {
+    return entry.entries
+      .map((e: any) => this.formatRuleEntry(e))
+      .join('<br><br>');
+  }
+
+  return '';
+}
+
+
+private parseRuleTags(text: string): string {
+  if (!text) return '';
+
+  // {@condition blinded}
+  text = text.replace(
+    /\{@condition ([^}]+)}/g,
+    '<span class="rule-condition">$1</span>'
+  );
+
+  // {@spell fireball}
+  text = text.replace(
+    /\{@spell ([^}|]+)(?:\|[^}]+)?}/g,
+    '<span class="rule-spell">$1</span>'
+  );
+
+  // {@dice 1d6}
+  text = text.replace(
+    /\{@dice ([^}]+)}/g,
+    '<span class="rule-dice">$1</span>'
+  );
+
+  // Generic fallback
+  text = text.replace(/\{@[^}]+ ([^}]+)}/g, '$1');
+
+  return text;
+}
 
 
 

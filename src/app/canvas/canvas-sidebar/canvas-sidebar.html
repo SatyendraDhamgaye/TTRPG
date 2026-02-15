@@ -6,6 +6,7 @@
     <i (click)="setMode('tokens')" [class.active]="mode === 'tokens'" title="Tokens">🎴</i>
     <i (click)="setMode('monsters')" [class.active]="mode === 'monsters'" title="Monsters">🧟</i>
     <i (click)="setMode('spells')" [class.active]="mode === 'spells'" title="Spells">✨</i>
+    <i (click)="setMode('rules')" [class.active]="mode === 'rules'" title="Rules">📜</i>
     <i (click)="setMode('music')" [class.active]="mode === 'music'" title="Music">🎧</i>
     <i (click)="setMode('settings')" [class.active]="mode === 'settings'" title="Settings">⚙️</i>
   </div>
@@ -53,11 +54,8 @@
   <!-- Monster compendium mode. -->
   <div *ngIf="mode === 'monsters'" class="mode-container">
     <div class="search">
-      <input
-        placeholder="Search monsters..."
-        [ngModel]="monsterSearch"
-        (ngModelChange)="onMonsterSearchChange($event)"
-      />
+      <input placeholder="Search monsters..." [ngModel]="monsterSearch"
+        (ngModelChange)="onMonsterSearchChange($event)" />
     </div>
 
     <div *ngIf="loadingMonsters" class="loader">
@@ -69,19 +67,10 @@
       <div class="section-title">Monsters</div>
 
       <div class="token-list">
-        <div
-          class="token-row"
-          *ngFor="let m of filteredMonsters(); trackBy: trackMonsterById"
-          draggable="true"
-          (dragstart)="dragMonster($event, m)"
-        >
+        <div class="token-row" *ngFor="let m of filteredMonsters(); trackBy: trackMonsterById" draggable="true"
+          (dragstart)="dragMonster($event, m)">
           <div class="img-frame">
-            <img
-              [src]="m.image"
-              loading="lazy"
-              decoding="async"
-              (error)="onMonsterImageError(m.id)"
-            />
+            <img [src]="m.image" loading="lazy" decoding="async" (error)="onMonsterImageError(m.id)" />
           </div>
 
           <span>{{m.name}}</span>
@@ -90,90 +79,247 @@
     </div>
   </div>
 
-<div *ngIf="mode === 'spells'" class="mode-container">
+  <div *ngIf="mode === 'spells'" class="mode-container">
 
+    <div class="search">
+      <input placeholder="Search spells..." [ngModel]="spellSearch" (ngModelChange)="onSpellSearchChange($event)" />
+    </div>
+
+    <!-- LOADING -->
+    <div *ngIf="loadingSpells" class="loader">
+      <div class="spinner"></div>
+      <div class="loader-text">Loading spells...</div>
+    </div>
+
+    <!-- LIST -->
+    <div *ngIf="!loadingSpells" class="scroll-zone">
+
+      <div class="section-title">Spells</div>
+
+      <div class="token-list">
+
+        <div class="spell-row" *ngFor="let spell of filteredSpells(); trackBy: trackSpellByName" [ngClass]="[
+          getSchoolClass(spell.school),
+          expandedSpell === spell.name ? 'expanded' : ''
+        ]" (click)="toggleSpell(spell.name)">
+
+          <div class="spell-header">
+
+            <div class="spell-info">
+              <div class="spell-name">
+                <span class="school-icon">
+                  {{ getSchoolIcon(spell.school) }}
+                </span>
+                {{ spell.name }}
+              </div>
+
+              <div class="spell-school">
+                {{ getSchoolName(spell.school) }}
+              </div>
+            </div>
+
+            <div class="spell-level">
+              {{ spell.level === 0 ? 'Cantrip' : 'Lv ' + spell.level }}
+            </div>
+
+          </div>
+
+          <!-- EXPANDABLE CONTENT -->
+          <div class="spell-details" [class.open]="expandedSpell === spell.name">
+
+            <div class="spell-meta-grid">
+
+              <div><strong>Casting Time:</strong> {{ getCastingTime(spell) }}</div>
+
+              <div><strong>Range:</strong> {{ getRange(spell) }}</div>
+
+              <div>
+                <strong>Duration:</strong>
+                {{ getDuration(spell) }}
+                <span *ngIf="isConcentration(spell)"> (Concentration)</span>
+              </div>
+
+              <div><strong>Components:</strong> {{ getComponents(spell) }}</div>
+
+              <div *ngIf="isRitual(spell)">
+                <strong>Ritual</strong>
+              </div>
+
+              <div><strong>Classes:</strong> {{ getClasses(spell) }}</div>
+
+            </div>
+
+            <div *ngFor="let entry of spell.entries" class="spell-paragraph" [innerHTML]="formatEntry(entry)">
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+
+
+
+
+  <div *ngIf="mode === 'music'" class="mode-container music-mode">
+
+    <div class="creator music-creator">
+
+      <input placeholder="Track Name" [(ngModel)]="musicName" />
+
+      <input placeholder="YouTube URL" [(ngModel)]="musicUrl" />
+
+      <button (click)="addMusic()">Create</button>
+
+    </div>
+
+    <div class="scroll-zone">
+
+      <div class="section-title">Music</div>
+
+      <div class="token-list">
+
+        <div *ngIf="tracks.length === 0" class="music-empty">
+          Add a YouTube link to create your first track.
+        </div>
+
+        <div class="music-row" [class.playing]="currentTrackId === track.id" *ngFor="let track of tracks">
+
+          <div class="music-info">
+            🎵 {{ track.name }}
+          </div>
+
+          <div class="music-actions">
+
+            <!-- PLAY -->
+            <button *ngIf="currentTrackId !== track.id" (click)="play(track)">
+              ▶
+            </button>
+
+            <!-- PAUSE -->
+            <button *ngIf="currentTrackId === track.id && !isPaused" (click)="stop()">
+              ⏸
+            </button>
+
+            <!-- RESUME -->
+            <button *ngIf="currentTrackId === track.id && isPaused" (click)="play(track)">
+              ▶
+            </button>
+
+
+            <!-- DELETE -->
+            <button (click)="removeMusic(track.id)">
+              ✕
+            </button>
+
+          </div>
+
+
+        </div>
+
+      </div>
+
+    </div>
+
+    
+
+  </div>
+
+
+
+
+
+
+  <div *ngIf="mode === 'rules'" class="mode-container">
+
+  <!-- SEARCH -->
   <div class="search">
     <input
-      placeholder="Search spells..."
-      [ngModel]="spellSearch"
-      (ngModelChange)="onSpellSearchChange($event)"
-    />
+      placeholder="Search rules..."
+      [ngModel]="ruleSearch"
+      (ngModelChange)="onRuleSearchChange($event)" />
   </div>
 
   <!-- LOADING -->
-  <div *ngIf="loadingSpells" class="loader">
+  <div *ngIf="loadingRules" class="loader">
     <div class="spinner"></div>
-    <div class="loader-text">Loading spells...</div>
+    <div class="loader-text">Loading rules...</div>
   </div>
 
   <!-- LIST -->
-  <div *ngIf="!loadingSpells" class="scroll-zone">
+  <div *ngIf="!loadingRules" class="scroll-zone">
 
-    <div class="section-title">Spells</div>
+    <div class="section-title">Rules</div>
 
     <div class="token-list">
 
       <div
         class="spell-row"
-        *ngFor="let spell of filteredSpells(); trackBy: trackSpellByName"
-        [ngClass]="[
-          getSchoolClass(spell.school),
-          expandedSpell === spell.name ? 'expanded' : ''
-        ]"
-        (click)="toggleSpell(spell.name)">
+        *ngFor="let rule of filteredRules()"
+        (click)="toggleRule(rule.name)">
 
         <div class="spell-header">
 
           <div class="spell-info">
             <div class="spell-name">
-              <span class="school-icon">
-                {{ getSchoolIcon(spell.school) }}
-              </span>
-              {{ spell.name }}
+              📘 {{ rule.name }}
             </div>
 
             <div class="spell-school">
-              {{ getSchoolName(spell.school) }}
+              {{ rule.category | titlecase }}
             </div>
-          </div>
-
-          <div class="spell-level">
-            {{ spell.level === 0 ? 'Cantrip' : 'Lv ' + spell.level }}
           </div>
 
         </div>
 
-        <!-- EXPANDABLE CONTENT -->
+        <!-- EXPANDABLE -->
         <div
           class="spell-details"
-          [class.open]="expandedSpell === spell.name">
-
-          <div class="spell-meta-grid">
-
-            <div><strong>Casting Time:</strong> {{ getCastingTime(spell) }}</div>
-
-            <div><strong>Range:</strong> {{ getRange(spell) }}</div>
-
-            <div>
-              <strong>Duration:</strong>
-              {{ getDuration(spell) }}
-              <span *ngIf="isConcentration(spell)"> (Concentration)</span>
-            </div>
-
-            <div><strong>Components:</strong> {{ getComponents(spell) }}</div>
-
-            <div *ngIf="isRitual(spell)">
-              <strong>Ritual</strong>
-            </div>
-
-            <div><strong>Classes:</strong> {{ getClasses(spell) }}</div>
-
-          </div>
+          [class.open]="expandedRule === rule.name">
 
           <div
-            *ngFor="let entry of spell.entries"
-            class="spell-paragraph"
-            [innerHTML]="formatEntry(entry)">
+            *ngFor="let entry of rule.entries"
+            class="spell-paragraph">
+
+<!-- STRING ENTRY -->
+<ng-container *ngIf="isString(entry)">
+<div [innerHTML]="formatRuleEntry(entry)"></div>
+
+</ng-container>
+
+<!-- LIST ENTRY -->
+<ng-container *ngIf="isList(entry)">
+  <ul>
+    <li *ngFor="let item of entry.items">
+      <div [innerHTML]="formatRuleEntry(item)"></div>
+
+    </li>
+  </ul>
+</ng-container>
+
+<!-- TABLE ENTRY -->
+<ng-container *ngIf="isTable(entry)">
+  <table class="rule-table">
+    <tr>
+      <th *ngFor="let col of entry.colLabels">
+        {{ col }}
+      </th>
+    </tr>
+    <tr *ngFor="let row of entry.rows">
+      <td *ngFor="let cell of row">
+        {{ cell }}
+      </td>
+    </tr>
+  </table>
+</ng-container>
+
+
           </div>
 
         </div>
@@ -185,97 +331,6 @@
   </div>
 
 </div>
-
-
-
-
-
-
-<div *ngIf="mode === 'music'" class="mode-container music-mode">
-
-  <div class="creator music-creator">
-
-    <input
-      placeholder="Track Name"
-      [(ngModel)]="musicName" />
-
-    <input
-      placeholder="YouTube URL"
-      [(ngModel)]="musicUrl" />
-
-    <button (click)="addMusic()">Create</button>
-
-  </div>
-
-  <div class="scroll-zone">
-
-    <div class="section-title">Music</div>
-
-    <div class="token-list">
-
-      <div *ngIf="tracks.length === 0" class="music-empty">
-        Add a YouTube link to create your first track.
-      </div>
-
-      <div
-        class="music-row"
-        [class.playing]="currentTrackId === track.id"
-        *ngFor="let track of tracks">
-
-        <div class="music-info">
-          🎵 {{ track.name }}
-        </div>
-
-<div class="music-actions">
-
-  <!-- PLAY -->
-  <button
-    *ngIf="currentTrackId !== track.id"
-    (click)="play(track)">
-    ▶
-  </button>
-
-  <!-- PAUSE -->
-  <button
-    *ngIf="currentTrackId === track.id && !isPaused"
-    (click)="stop()">
-    ⏸
-  </button>
-
-  <!-- RESUME -->
-  <button
-    *ngIf="currentTrackId === track.id && isPaused"
-    (click)="play(track)">
-    ▶
-  </button>
-
-
-  <!-- DELETE -->
-  <button (click)="removeMusic(track.id)">
-    ✕
-  </button>
-
-</div>
-
-
-      </div>
-
-    </div>
-
-  </div>
-
-  <!-- Hidden audio player -->
-  <iframe
-    *ngIf="currentTrackUrl"
-    width="0"
-    height="0"
-    [src]="currentTrackUrl"
-    frameborder="0"
-    allow="autoplay">
-  </iframe>
-
-</div>
-
 
 
 
@@ -299,4 +354,12 @@
   <div *ngIf="mode === 'settings'" class="empty">
     Settings panel coming soon...
   </div>
+
+
+
+
+
+  <!-- Hidden audio player -->
+    <iframe *ngIf="currentTrackUrl" width="0" height="0" [src]="currentTrackUrl" frameborder="0" allow="autoplay">
+    </iframe>
 </div>
