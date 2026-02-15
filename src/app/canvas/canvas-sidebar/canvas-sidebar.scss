@@ -116,7 +116,8 @@
 .token-list {
   flex: 1;
   overflow-y: auto;
-  padding: 0 6px;
+  padding: 10px 2px 12px;
+
   min-height: 0;
 }
 
@@ -360,7 +361,9 @@
   flex: 1;
   overflow-y: auto;
   min-height: 0;
+  padding: 6px 8px 12px;
 }
+
 
 /* CREATOR ALWAYS DOCKED */
 .creator {
@@ -436,4 +439,213 @@
   to {
     transform: rotate(360deg);
   }
+}
+
+
+
+.spells-section {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.spell-search {
+  margin: 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: none;
+  background: #1f1f24;
+  color: #fff;
+  font-size: 12px;
+}
+
+.spell-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px 8px 12px;
+}
+
+.spell-card {
+  padding: 6px 8px;
+  border-radius: 6px;
+  margin-bottom: 6px;
+  background: #1b1c21;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.spell-card:hover {
+  background: #24262c;
+}
+
+.spell-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+}
+
+.spell-name {
+  font-weight: 500;
+}
+
+.spell-level {
+  opacity: 0.7;
+  font-size: 11px;
+}
+
+.spell-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  padding: 8px 10px;
+  margin-bottom: 6px;
+
+  border-radius: 8px;
+  background: #202227;
+  border: 1px solid transparent;
+
+  cursor: pointer;
+  transition: all .15s ease;
+}
+
+.spell-row:hover {
+  background: #262a31;
+  border-color: #2f3238;
+}
+
+.spell-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.spell-name {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.spell-school {
+  font-size: 11px;
+  opacity: .55;
+}
+
+.spell-level {
+  font-size: 11px;
+  opacity: .7;
+}
+
+.school-icon {
+  margin-right: 6px;
+  font-size: 12px;
+  opacity: .9;
+}
+
+/* ===== SCHOOL GLOWS ===== */
+
+.spell-row {
+  transition: all .15s ease;
+}
+
+/* Base hover refinement */
+.spell-row:hover {
+  transform: translateY(-1px);
+}
+
+/* Abjuration – Blue shield glow */
+.school-abjuration:hover {
+  box-shadow: 0 0 0 1px rgba(80,150,255,.4),
+              0 0 10px rgba(80,150,255,.25);
+}
+
+/* Conjuration – Purple arcane glow */
+.school-conjuration:hover {
+  box-shadow: 0 0 0 1px rgba(170,100,255,.4),
+              0 0 10px rgba(170,100,255,.25);
+}
+
+/* Divination – Golden insight glow */
+.school-divination:hover {
+  box-shadow: 0 0 0 1px rgba(255,200,80,.4),
+              0 0 10px rgba(255,200,80,.25);
+}
+
+/* Enchantment – Pink charm glow */
+.school-enchantment:hover {
+  box-shadow: 0 0 0 1px rgba(255,120,200,.4),
+              0 0 10px rgba(255,120,200,.25);
+}
+
+/* Evocation – Fiery red glow */
+.school-evocation:hover {
+  box-shadow: 0 0 0 1px rgba(255,80,80,.4),
+              0 0 10px rgba(255,80,80,.25);
+}
+
+/* Illusion – Cyan shimmer */
+.school-illusion:hover {
+  box-shadow: 0 0 0 1px rgba(80,220,255,.4),
+              0 0 10px rgba(80,220,255,.25);
+}
+
+/* Necromancy – Dark green glow */
+.school-necromancy:hover {
+  box-shadow: 0 0 0 1px rgba(100,255,140,.4),
+              0 0 10px rgba(100,255,140,.25);
+}
+
+/* Transmutation – Amber alchemy glow */
+.school-transmutation:hover {
+  box-shadow: 0 0 0 1px rgba(255,160,80,.4),
+              0 0 10px rgba(255,160,80,.25);
+}
+
+.spell-row {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.spell-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.spell-details {
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: all .25s ease;
+}
+
+.spell-details.open {
+  max-height: 500px;   /* big enough for content */
+  opacity: 1;
+  margin-top: 8px;
+}
+
+.spell-description {
+  font-size: 12px;
+  opacity: .8;
+  line-height: 1.4;
+}
+
+.spell-paragraph {
+  margin-bottom: 8px;
+  white-space: pre-line;
+}
+
+.spell-skill {
+  color: #c084fc;   /* soft arcane purple */
+  font-weight: 500;
+  opacity: .9;
+}
+
+.spell-meta-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 4px;
+  font-size: 12px;
+  opacity: .9;
+  margin-bottom: 10px;
 }

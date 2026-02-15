@@ -5,6 +5,7 @@
     <i (click)="setMode('characters')" [class.active]="mode === 'characters'" title="Characters">👤</i>
     <i (click)="setMode('tokens')" [class.active]="mode === 'tokens'" title="Tokens">🎴</i>
     <i (click)="setMode('monsters')" [class.active]="mode === 'monsters'" title="Monsters">🧟</i>
+    <i (click)="setMode('spells')" [class.active]="mode === 'spells'" title="Spells">✨</i>
     <i (click)="setMode('music')" [class.active]="mode === 'music'" title="Music">🎧</i>
     <i (click)="setMode('settings')" [class.active]="mode === 'settings'" title="Settings">⚙️</i>
   </div>
@@ -19,12 +20,7 @@
       <div class="section-title">Tokens</div>
 
       <div class="token-list">
-        <div
-          class="token-row"
-          *ngFor="let t of filteredTokens"
-          draggable="true"
-          (dragstart)="dragStart($event, t)"
-        >
+        <div class="token-row" *ngFor="let t of filteredTokens" draggable="true" (dragstart)="dragStart($event, t)">
           <img [src]="t.image" />
           <span>{{t.name}}</span>
           <button (click)="delete(t.id)">✕</button>
@@ -55,35 +51,125 @@
   </div>
 
   <!-- Monster compendium mode. -->
-<div *ngIf="mode === 'monsters'" class="mode-container">
-  <div class="search">
-    <input placeholder="Search monsters..." [(ngModel)]="monsterSearch" />
-  </div>
+  <div *ngIf="mode === 'monsters'" class="mode-container">
+    <div class="search">
+      <input placeholder="Search monsters..." [(ngModel)]="monsterSearch" />
+    </div>
 
-  <div *ngIf="loadingMonsters" class="loader">
-    <div class="spinner"></div>
-    <div class="loader-text">Loading monsters...</div>
-  </div>
+    <div *ngIf="loadingMonsters" class="loader">
+      <div class="spinner"></div>
+      <div class="loader-text">Loading monsters...</div>
+    </div>
 
-  <div *ngIf="!loadingMonsters" class="scroll-zone">
-    <div class="section-title">Monsters</div>
+    <div *ngIf="!loadingMonsters" class="scroll-zone">
+      <div class="section-title">Monsters</div>
 
-    <div class="token-list">
-      <div
-        class="token-row"
-        *ngFor="let m of filteredMonsters"
-        draggable="true"
-        (dragstart)="dragMonster($event, m)"
-      >
-        <div class="img-frame">
-          <img [src]="m.image" (error)="m.image = 'compendium/monsters/images/default.png'" />
+      <div class="token-list">
+        <div class="token-row" *ngFor="let m of filteredMonsters" draggable="true" (dragstart)="dragMonster($event, m)">
+          <div class="img-frame">
+            <img [src]="m.image" (error)="m.image = 'compendium/monsters/images/default.png'" />
+          </div>
+
+          <span>{{m.name}}</span>
         </div>
-
-        <span>{{m.name}}</span>
       </div>
     </div>
   </div>
+
+<!-- ================= SPELLS ================= -->
+<div *ngIf="mode === 'spells'" class="mode-container">
+
+  <div class="search">
+    <input
+      placeholder="Search spells..."
+      [(ngModel)]="spellSearch"
+    />
+  </div>
+
+  <div class="scroll-zone">
+
+    <div class="section-title">Spells</div>
+
+    <div class="token-list">
+
+<div
+  class="spell-row"
+  *ngFor="let spell of filteredSpells"
+  [ngClass]="[
+    getSchoolClass(spell.school),
+    expandedSpell === spell.name ? 'expanded' : ''
+  ]"
+  (click)="toggleSpell(spell.name)">
+
+  <div class="spell-header">
+
+    <div class="spell-info">
+      <div class="spell-name">
+        <span class="school-icon">
+          {{ getSchoolIcon(spell.school) }}
+        </span>
+        {{ spell.name }}
+      </div>
+
+      <div class="spell-school">
+        {{ getSchoolName(spell.school) }}
+      </div>
+    </div>
+
+    <div class="spell-level">
+      {{ spell.level === 0 ? 'Cantrip' : 'Lv ' + spell.level }}
+    </div>
+
+  </div>
+
+  <!-- EXPANDABLE CONTENT -->
+  <div
+    class="spell-details"
+    [class.open]="expandedSpell === spell.name">
+
+    <div class="spell-meta-grid">
+
+  <div><strong>Casting Time:</strong> {{ getCastingTime(spell) }}</div>
+
+  <div><strong>Range:</strong> {{ getRange(spell) }}</div>
+
+  <div><strong>Duration:</strong>
+    {{ getDuration(spell) }}
+    <span *ngIf="isConcentration(spell)"> (Concentration)</span>
+  </div>
+
+  <div><strong>Components:</strong> {{ getComponents(spell) }}</div>
+
+  <div *ngIf="isRitual(spell)">
+    <strong>Ritual</strong>
+  </div>
+
+  <div><strong>Classes:</strong> {{ getClasses(spell) }}</div>
+
 </div>
+
+<div
+  *ngFor="let entry of spell.entries"
+  class="spell-paragraph"
+  [innerHTML]="formatEntry(entry)">
+</div>
+
+
+  </div>
+
+</div>
+
+
+
+
+    </div>
+
+  </div>
+
+</div>
+
+
+
 
   <!-- Placeholder panels for unfinished modes. -->
 
