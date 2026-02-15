@@ -8,6 +8,9 @@ import { MonsterService } from '../../services/monster.service';
 import { MonsterData } from '../../models/monster.model';
 import { SpellService } from '../../services/spell.service';
 import { Spell } from '../../models/spell.model';
+import { MusicService } from '../../services/music.service';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+
 
 type SidebarMode =
   | 'map'
@@ -41,13 +44,17 @@ export class CanvasSidebarComponent {
   private readonly brokenMonsterImageIds = signal<Set<string>>(new Set());
 
 
+
+
   // Reactive token collection for currently selected campaign.
   readonly tokens: () => TokenData[];
 
   constructor(
     private tokenService: TokenService,
     private monsterService: MonsterService,
-  private spellService: SpellService
+  private spellService: SpellService,
+  private musicService: MusicService,   
+  private sanitizer: DomSanitizer
   ) {
     this.tokens = this.tokenService.tokens;
   }
@@ -63,7 +70,99 @@ setMode(mode: SidebarMode): void {
   if (mode === 'spells') {
     this.spellService.load();
   }
+
+  if (mode === 'music') {
+  this.musicService.setCampaign(this.campaignId);
 }
+
+}
+
+
+
+musicName = '';
+musicUrl = '';
+
+currentTrackUrl: SafeResourceUrl | null = null;
+currentTrackId: string | null = null;
+isPaused = false;
+
+get tracks() {
+  return this.musicService.tracks();
+}
+
+addMusic(): void {
+  if (!this.musicName || !this.musicUrl) return;
+
+  this.musicService.add(this.musicName, this.musicUrl);
+
+  this.musicName = '';
+  this.musicUrl = '';
+}
+
+play(track: any): void {
+
+  // If clicking same track while paused → resume
+  if (this.currentTrackId === track.id && this.isPaused) {
+    this.isPaused = false;
+
+    this.currentTrackUrl =
+      this.sanitizer.bypassSecurityTrustResourceUrl(
+        `https://www.youtube.com/embed/${track.videoId}?autoplay=1&start=0&loop=1&playlist=${track.videoId}`
+      );
+
+    return;
+  }
+
+  // If same track already playing → do nothing
+  if (this.currentTrackId === track.id && !this.isPaused) {
+    return;
+  }
+
+  // Load new track
+  this.currentTrackId = track.id;
+  this.isPaused = false;
+
+  this.currentTrackUrl =
+    this.sanitizer.bypassSecurityTrustResourceUrl(
+      `https://www.youtube.com/embed/${track.videoId}?autoplay=1&start=0&loop=1&playlist=${track.videoId}`
+    );
+}
+
+
+
+
+
+stop(): void {
+  if (!this.currentTrackId) return;
+
+  this.isPaused = true;
+
+  const track = this.tracks.find(t => t.id === this.currentTrackId);
+  if (!track) return;
+
+  this.currentTrackUrl =
+    this.sanitizer.bypassSecurityTrustResourceUrl(
+      `https://www.youtube.com/embed/${track.videoId}?autoplay=0&loop=1&playlist=${track.videoId}`
+    );
+}
+
+
+
+removeMusic(id: string): void {
+  this.musicService.remove(id);
+
+  if (this.currentTrackId === id) {
+    this.currentTrackId = null;
+    this.currentTrackUrl = null;
+    this.isPaused = false;
+  }
+}
+
+
+
+
+
+
 
 
   // Monster list filtered by search term with memoized recomputation.

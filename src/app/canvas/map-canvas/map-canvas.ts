@@ -7,6 +7,7 @@ import { CoreShapeComponent, StageComponent } from 'ng2-konva';
 import { CampaignStorageService } from '../../campaign-storage.service';
 import { TokenData } from '../../models/token.model';
 import { TokenService } from '../../services/token.service';
+import { HostListener } from '@angular/core';
 
 interface PlacedEntity {
   id: string;
@@ -16,6 +17,7 @@ interface PlacedEntity {
   cells: number;
   data: TokenData | null;
 }
+
 
 @Component({
   selector: 'app-map-canvas',
@@ -48,7 +50,8 @@ export class MapCanvasComponent implements AfterViewInit, OnChanges {
   private highlightLayer!: Konva.Layer;
 
   private transformer: Konva.Transformer | null = null;
-  private selectedToken: Konva.Group | null = null;
+  private selectedTokens: Konva.Group[] = [];
+
 
   constructor(
     private readonly store: CampaignStorageService,
@@ -66,7 +69,6 @@ export class MapCanvasComponent implements AfterViewInit, OnChanges {
       }
     }, 200);
 
-    window.addEventListener('keydown', this.onKeyDown);
     window.addEventListener('resize', this.onResize);
   }
 
@@ -86,29 +88,7 @@ export class MapCanvasComponent implements AfterViewInit, OnChanges {
     }
   }
 
-  // Keyboard handler for deleting selected token.
-  private onKeyDown = (event: KeyboardEvent): void => {
-    if (event.key !== 'Delete') {
-      return;
-    }
 
-    const active = document.activeElement;
-    if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) {
-      return;
-    }
-
-    if (!this.selectedToken) {
-      return;
-    }
-
-    this.transformer?.destroy();
-    this.transformer = null;
-    this.selectedToken.destroy();
-    this.selectedToken = null;
-
-    this.tokenLayer.draw();
-    this.savePlacedTokens();
-  };
 
   // Window resize handler to keep stage viewport in sync.
   private onResize = (): void => {
@@ -143,11 +123,15 @@ export class MapCanvasComponent implements AfterViewInit, OnChanges {
     this.loadMap();
 
     this.stage.on('mousedown', (event: Konva.KonvaEventObject<MouseEvent>) => {
-      if (event.target === this.stage) {
-        this.selectedToken = null;
-        this.updateHighlight();
-      }
-    });
+  if (event.target === this.stage) {
+    this.selectedTokens = [];
+    this.transformer?.destroy();
+    this.transformer = null;
+    this.tokenLayer.draw();
+    this.updateHighlight();
+  }
+});
+
   }
 
   // Update grid size and re-snap existing tokens.
@@ -168,13 +152,37 @@ export class MapCanvasComponent implements AfterViewInit, OnChanges {
   onWheel(event: WheelEvent): void {
     event.preventDefault();
 
+    if (!this.stage) {
+      return;
+    }
+
+    this.stage.setPointersPositions(event);
+
+    const pointer = this.stage.getPointerPosition();
+    if (!pointer) {
+      return;
+    }
+
     const oldScale = this.stage.scaleX();
     const scaleBy = 1.1;
     const nextScale = event.deltaY < 0 ? oldScale * scaleBy : oldScale / scaleBy;
-    const clamped = Math.max(0.5, Math.min(2.5, nextScale));
+    const newScale = Math.max(0.5, Math.min(2.5, nextScale));
 
-    this.stage.scale({ x: clamped, y: clamped });
-    this.stage.draw();
+    // Keep the world point under cursor fixed while zooming.
+    const mousePointTo = {
+      x: (pointer.x - this.stage.x()) / oldScale,
+      y: (pointer.y - this.stage.y()) / oldScale
+    };
+
+    this.stage.scale({ x: newScale, y: newScale });
+
+    const newPosition = {
+      x: pointer.x - mousePointTo.x * newScale,
+      y: pointer.y - mousePointTo.y * newScale
+    };
+
+    this.stage.position(newPosition);
+    this.stage.batchDraw();
   }
 
   // Load placed token instances for the active campaign.
@@ -369,32 +377,32 @@ export class MapCanvasComponent implements AfterViewInit, OnChanges {
   }
 
   // Select token and show transformer controls.
-  private selectToken(group: Konva.Group): void {
-    this.selectedToken = group;
-    this.attachTransformer(group);
-    this.transformer?.visible(true);
-    this.transformer?.forceUpdate();
-  }
+private selectToken(group: Konva.Group): void {
+  this.selectedTokens = [group];
+  this.attachTransformerToMultiple(this.selectedTokens);
+}
+
 
   // Attach transformer handles to a single token group.
-  private attachTransformer(group: Konva.Group): void {
-    this.transformer?.destroy();
+private attachTransformerToMultiple(groups: Konva.Group[]): void {
+  this.transformer?.destroy();
 
-    this.transformer = new Konva.Transformer({
-      nodes: [group],
-      enabledAnchors: ['top-left', 'top-right', 'bottom-left', 'bottom-right'],
-      rotateEnabled: false,
-      keepRatio: true,
-      ignoreStroke: true,
-      borderStroke: '#4a90e2',
-      anchorFill: '#4a90e2',
-      anchorSize: 8
-    });
+  this.transformer = new Konva.Transformer({
+    nodes: groups,
+    enabledAnchors: ['top-left', 'top-right', 'bottom-left', 'bottom-right'],
+    rotateEnabled: false,
+    keepRatio: true,
+    ignoreStroke: true,
+    borderStroke: '#4a90e2',
+    anchorFill: '#4a90e2',
+    anchorSize: 8
+  });
 
-    this.tokenLayer.add(this.transformer);
-    this.transformer.moveToTop();
-    this.tokenLayer.draw();
-  }
+  this.tokenLayer.add(this.transformer);
+  this.transformer.moveToTop();
+  this.tokenLayer.draw();
+}
+
 
   // Snap token center based on current grid and token size.
   private snapGroup(group: Konva.Group): void {
@@ -442,7 +450,7 @@ export class MapCanvasComponent implements AfterViewInit, OnChanges {
       const prepared = this.prepareTokenImage(image);
 
       prepared.onload = () => {
-        const position = this.stage.getRelativePointerPosition();
+        const position = this.getWorldPositionFromClientPoint(event.clientX, event.clientY);
         if (!position) {
           return;
         }
@@ -461,4 +469,71 @@ export class MapCanvasComponent implements AfterViewInit, OnChanges {
       };
     };
   }
+
+  // Convert viewport client coordinates into stage world coordinates.
+  private getWorldPositionFromClientPoint(clientX: number, clientY: number): { x: number; y: number } | null {
+    if (!this.stage) {
+      return null;
+    }
+
+    const containerRect = this.stage.container().getBoundingClientRect();
+    const pointer = {
+      x: clientX - containerRect.left,
+      y: clientY - containerRect.top
+    };
+
+    const scale = this.stage.scaleX();
+    const stagePos = this.stage.position();
+
+    return {
+      x: (pointer.x - stagePos.x) / scale,
+      y: (pointer.y - stagePos.y) / scale
+    };
+  }
+  @HostListener('window:keydown', ['$event'])
+handleKeyboard(event: KeyboardEvent) {
+
+  // CTRL + A
+  if (event.ctrlKey && event.key.toLowerCase() === 'a') {
+    event.preventDefault(); // 🚫 disable browser select all
+    this.selectAllTokens();
+  }
+
+  // DELETE
+  if (event.key === 'Delete') {
+    this.deleteSelectedTokens();
+  }
+}
+
+private selectAllTokens(): void {
+  if (!this.tokenLayer) return;
+
+const groups = this.tokenLayer.getChildren()
+  .filter(node =>
+    node instanceof Konva.Group &&
+    (node as any).attrs.tokenId
+  ) as Konva.Group[];
+
+
+  if (!groups.length) return;
+
+  this.selectedTokens = groups;
+  this.attachTransformerToMultiple(groups);
+}
+
+private deleteSelectedTokens(): void {
+  if (!this.selectedTokens.length) return;
+
+  this.selectedTokens.forEach(group => group.destroy());
+
+  this.selectedTokens = [];
+  this.transformer?.destroy();
+  this.transformer = null;
+
+  this.tokenLayer.draw();
+  this.savePlacedTokens();
+}
+
+
+
 }

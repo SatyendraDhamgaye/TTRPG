@@ -190,6 +190,100 @@
 
 
 
+
+<div *ngIf="mode === 'music'" class="mode-container music-mode">
+
+  <div class="creator music-creator">
+
+    <input
+      placeholder="Track Name"
+      [(ngModel)]="musicName" />
+
+    <input
+      placeholder="YouTube URL"
+      [(ngModel)]="musicUrl" />
+
+    <button (click)="addMusic()">Create</button>
+
+  </div>
+
+  <div class="scroll-zone">
+
+    <div class="section-title">Music</div>
+
+    <div class="token-list">
+
+      <div *ngIf="tracks.length === 0" class="music-empty">
+        Add a YouTube link to create your first track.
+      </div>
+
+      <div
+        class="music-row"
+        [class.playing]="currentTrackId === track.id"
+        *ngFor="let track of tracks">
+
+        <div class="music-info">
+          🎵 {{ track.name }}
+        </div>
+
+<div class="music-actions">
+
+  <!-- PLAY -->
+  <button
+    *ngIf="currentTrackId !== track.id"
+    (click)="play(track)">
+    ▶
+  </button>
+
+  <!-- PAUSE -->
+  <button
+    *ngIf="currentTrackId === track.id && !isPaused"
+    (click)="stop()">
+    ⏸
+  </button>
+
+  <!-- RESUME -->
+  <button
+    *ngIf="currentTrackId === track.id && isPaused"
+    (click)="play(track)">
+    ▶
+  </button>
+
+
+  <!-- DELETE -->
+  <button (click)="removeMusic(track.id)">
+    ✕
+  </button>
+
+</div>
+
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- Hidden audio player -->
+  <iframe
+    *ngIf="currentTrackUrl"
+    width="0"
+    height="0"
+    [src]="currentTrackUrl"
+    frameborder="0"
+    allow="autoplay">
+  </iframe>
+
+</div>
+
+
+
+
+
+
+
+
+
   <!-- Placeholder panels for unfinished modes. -->
 
   <div *ngIf="mode === 'map'" class="empty">
@@ -200,9 +294,7 @@
     Characters coming soon...
   </div>
 
-  <div *ngIf="mode === 'music'" class="empty">
-    Music player coming soon...
-  </div>
+
 
   <div *ngIf="mode === 'settings'" class="empty">
     Settings panel coming soon...

@@ -31,6 +31,19 @@
   border-bottom: 1px solid #111;
 }
 
+.sidebar {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.sidebar input,
+.sidebar textarea {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+
+
 
 /* button style */
 .top-bar i {
@@ -615,14 +628,31 @@
   max-height: 0;
   overflow: hidden;
   opacity: 0;
-  transition: all .25s ease;
+  transition: max-height .3s ease, opacity .2s ease;
 }
 
+/* When open */
 .spell-details.open {
-  max-height: 500px;   /* big enough for content */
+  max-height: 420px;   /* controls expansion size */
   opacity: 1;
   margin-top: 8px;
+  overflow-y: auto;
 }
+
+.spell-details::-webkit-scrollbar {
+  width: 6px;
+}
+
+.spell-details::-webkit-scrollbar-thumb {
+  background: #2f3238;
+  border-radius: 10px;
+}
+
+.spell-details::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+
 
 .spell-description {
   font-size: 12px;
@@ -648,4 +678,177 @@
   font-size: 12px;
   opacity: .9;
   margin-bottom: 10px;
+}
+
+.music-row {
+  position: relative;
+  margin-bottom: 10px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #202227;
+  padding: 6px;
+}
+
+.music-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px;
+  margin-bottom: 6px;
+  background: #202227;
+  border-radius: 8px;
+}
+
+.music-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px;
+  margin-bottom: 6px;
+  background: #202227;
+  border-radius: 8px;
+}
+
+.music-actions button {
+  width: 28px;
+  height: 28px;
+  background: #2a2d33;
+  border: 1px solid #3a3f48;
+  border-radius: 6px;
+  color: white;
+  cursor: pointer;
+}
+
+.music-actions button:hover {
+  background: #6c3dd1;
+}
+
+.music-row.playing {
+  box-shadow: 0 0 0 1px #6c3dd1;
+}
+
+
+.music-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.music-actions button:hover {
+  background: #6c3dd1;
+}
+
+/* ========================= */
+/* ===== MUSIC MODE ======== */
+/* ========================= */
+
+.music-mode .music-creator {
+  gap: 8px;
+  background: linear-gradient(180deg, #1f2126 0%, #1b1d22 100%);
+  border-top: 1px solid #323743;
+}
+
+.music-mode .music-creator input {
+  background: #23262d;
+  border: 1px solid #343946;
+}
+
+.music-mode .music-creator input:focus {
+  border-color: #6c3dd1;
+  box-shadow: 0 0 0 2px rgba(108, 61, 209, 0.2);
+}
+
+.music-mode .music-creator button {
+  background: linear-gradient(180deg, #6c3dd1 0%, #5632a8 100%);
+  border: 1px solid #7b50e1;
+  color: #fff;
+  font-weight: 600;
+}
+
+.music-mode .music-creator button:hover {
+  background: linear-gradient(180deg, #7b50e1 0%, #5f38b6 100%);
+  transform: translateY(-1px);
+}
+
+.music-mode .music-empty {
+  padding: 12px;
+  margin-bottom: 8px;
+  border: 1px dashed #3a3f4d;
+  border-radius: 10px;
+  background: #1c1f26;
+  color: #9ea6ba;
+  font-size: 12px;
+  text-align: center;
+}
+
+/* ===== Music Row ===== */
+
+.music-mode .music-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+
+  padding: 10px;
+  margin-bottom: 8px;
+
+  border-radius: 10px;
+  border: 1px solid #2e3340;
+  background: linear-gradient(180deg, #22262e 0%, #1e2128 100%);
+
+  transition: border-color .16s ease, 
+              transform .16s ease, 
+              box-shadow .16s ease;
+}
+
+.music-mode .music-row:hover {
+  border-color: #4a4f60;
+  transform: translateY(-1px);
+  box-shadow: 0 5px 14px rgba(0, 0, 0, 0.22);
+}
+
+.music-mode .music-row.playing {
+  border-color: #7b50e1;
+  box-shadow: 0 0 0 1px rgba(123, 80, 225, 0.35),
+              0 8px 16px rgba(0, 0, 0, 0.26);
+}
+
+.music-mode .music-info {
+  flex: 1;
+  min-width: 0;
+
+  font-size: 13px;
+  font-weight: 500;
+  color: #edf0f6;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.music-mode .music-actions {
+  display: flex;
+  align-items: center;   /* vertical center */
+  gap: 8px;
+}
+
+.music-mode .music-actions button {
+  display: flex;         /* key for centering emoji */
+  align-items: center;
+  justify-content: center;
+
+  width: 32px;
+  height: 32px;
+
+  padding: 0;            /* remove default padding */
+  line-height: 1;        /* prevents emoji offset */
+
+  border-radius: 10px;
+  border: 1px solid #41485a;
+  background: #2a2e38;
+  color: #f4f6fb;
+
+  font-size: 14px;       /* balanced emoji size */
+  cursor: pointer;
+
+  transition: all .15s ease;
 }
