@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -36,6 +36,9 @@ export class CanvasSidebarComponent {
   size: TokenData['size'] = 'medium';
   mode: SidebarMode = 'map';
   spellSearch = '';
+  private readonly monsterSearchTerm = signal('');
+  private readonly spellSearchTerm = signal('');
+  private readonly brokenMonsterImageIds = signal<Set<string>>(new Set());
 
 
   // Reactive token collection for currently selected campaign.
@@ -63,40 +66,74 @@ setMode(mode: SidebarMode): void {
 }
 
 
-  // Monster list filtered by search term.
-  get filteredMonsters(): MonsterData[] {
-    const term = this.monsterSearch.trim().toLowerCase();
+  // Monster list filtered by search term with memoized recomputation.
+  readonly filteredMonsters = computed(() => {
+    const term = this.monsterSearchTerm().trim().toLowerCase();
     const monsters = this.monsterService.monsters();
+    const brokenIds = this.brokenMonsterImageIds();
+
+    const visibleMonsters = monsters.filter((monster) => !brokenIds.has(monster.id));
 
     if (!term) {
-      return monsters;
+      return visibleMonsters;
     }
 
-    return monsters.filter((monster) => monster.name.toLowerCase().includes(term));
-  }
-
-get filteredSpells(): Spell[] {
-  const term = this.spellSearch.trim().toLowerCase();
-  const spells = this.spellService.spells();
-
-  let result = spells;
-
-  // Apply search if present
-  if (term) {
-    result = spells.filter(spell =>
-      spell.name.toLowerCase().includes(term)
-    );
-  }
-
-  // Sort by level first, then name
-  return [...result].sort((a, b) => {
-    if (a.level !== b.level) {
-      return a.level - b.level;
-    }
-
-    return a.name.localeCompare(b.name);
+    return visibleMonsters.filter((monster) => monster.name.toLowerCase().includes(term));
   });
-}
+
+  // Update monster search state used by computed filtering.
+  onMonsterSearchChange(value: string): void {
+    this.monsterSearch = value;
+    this.monsterSearchTerm.set(value);
+  }
+
+  // Stable identity for monster rows to reduce DOM churn.
+  trackMonsterById(_index: number, monster: MonsterData): string {
+    return monster.id;
+  }
+
+  // Remove monsters from the list when their image fails to load.
+  onMonsterImageError(monsterId: string): void {
+    this.brokenMonsterImageIds.update((prev) => {
+      if (prev.has(monsterId)) {
+        return prev;
+      }
+
+      const next = new Set(prev);
+      next.add(monsterId);
+      return next;
+    });
+  }
+
+  // Spell list filtered and sorted using memoized recomputation.
+  readonly filteredSpells = computed(() => {
+    const term = this.spellSearchTerm().trim().toLowerCase();
+    const spells = this.spellService.spells();
+
+    let result = spells;
+    if (term) {
+      result = spells.filter((spell) => spell.name.toLowerCase().includes(term));
+    }
+
+    return [...result].sort((a, b) => {
+      if (a.level !== b.level) {
+        return a.level - b.level;
+      }
+
+      return a.name.localeCompare(b.name);
+    });
+  });
+
+  // Update spell search term used by computed filtering.
+  onSpellSearchChange(value: string): void {
+    this.spellSearch = value;
+    this.spellSearchTerm.set(value);
+  }
+
+  // Stable identity for spell rows.
+  trackSpellByName(_index: number, spell: Spell): string {
+    return `${spell.name}-${spell.level}`;
+  }
 
 
 private schoolMap: Record<string, string> = {
@@ -355,6 +392,11 @@ isRitual(spell: any): boolean {
   get loadingMonsters(): boolean {
     return this.monsterService.loading();
   }
+
+  get loadingSpells(): boolean {
+  return this.spellService.loading();
+}
+
 
   // Remove a custom token from current campaign library.
   delete(id: string): void {

@@ -53,7 +53,11 @@
   <!-- Monster compendium mode. -->
   <div *ngIf="mode === 'monsters'" class="mode-container">
     <div class="search">
-      <input placeholder="Search monsters..." [(ngModel)]="monsterSearch" />
+      <input
+        placeholder="Search monsters..."
+        [ngModel]="monsterSearch"
+        (ngModelChange)="onMonsterSearchChange($event)"
+      />
     </div>
 
     <div *ngIf="loadingMonsters" class="loader">
@@ -65,9 +69,19 @@
       <div class="section-title">Monsters</div>
 
       <div class="token-list">
-        <div class="token-row" *ngFor="let m of filteredMonsters" draggable="true" (dragstart)="dragMonster($event, m)">
+        <div
+          class="token-row"
+          *ngFor="let m of filteredMonsters(); trackBy: trackMonsterById"
+          draggable="true"
+          (dragstart)="dragMonster($event, m)"
+        >
           <div class="img-frame">
-            <img [src]="m.image" (error)="m.image = 'compendium/monsters/images/default.png'" />
+            <img
+              [src]="m.image"
+              loading="lazy"
+              decoding="async"
+              (error)="onMonsterImageError(m.id)"
+            />
           </div>
 
           <span>{{m.name}}</span>
@@ -76,97 +90,102 @@
     </div>
   </div>
 
-<!-- ================= SPELLS ================= -->
 <div *ngIf="mode === 'spells'" class="mode-container">
 
   <div class="search">
     <input
       placeholder="Search spells..."
-      [(ngModel)]="spellSearch"
+      [ngModel]="spellSearch"
+      (ngModelChange)="onSpellSearchChange($event)"
     />
   </div>
 
-  <div class="scroll-zone">
+  <!-- LOADING -->
+  <div *ngIf="loadingSpells" class="loader">
+    <div class="spinner"></div>
+    <div class="loader-text">Loading spells...</div>
+  </div>
+
+  <!-- LIST -->
+  <div *ngIf="!loadingSpells" class="scroll-zone">
 
     <div class="section-title">Spells</div>
 
     <div class="token-list">
 
-<div
-  class="spell-row"
-  *ngFor="let spell of filteredSpells"
-  [ngClass]="[
-    getSchoolClass(spell.school),
-    expandedSpell === spell.name ? 'expanded' : ''
-  ]"
-  (click)="toggleSpell(spell.name)">
+      <div
+        class="spell-row"
+        *ngFor="let spell of filteredSpells(); trackBy: trackSpellByName"
+        [ngClass]="[
+          getSchoolClass(spell.school),
+          expandedSpell === spell.name ? 'expanded' : ''
+        ]"
+        (click)="toggleSpell(spell.name)">
 
-  <div class="spell-header">
+        <div class="spell-header">
 
-    <div class="spell-info">
-      <div class="spell-name">
-        <span class="school-icon">
-          {{ getSchoolIcon(spell.school) }}
-        </span>
-        {{ spell.name }}
+          <div class="spell-info">
+            <div class="spell-name">
+              <span class="school-icon">
+                {{ getSchoolIcon(spell.school) }}
+              </span>
+              {{ spell.name }}
+            </div>
+
+            <div class="spell-school">
+              {{ getSchoolName(spell.school) }}
+            </div>
+          </div>
+
+          <div class="spell-level">
+            {{ spell.level === 0 ? 'Cantrip' : 'Lv ' + spell.level }}
+          </div>
+
+        </div>
+
+        <!-- EXPANDABLE CONTENT -->
+        <div
+          class="spell-details"
+          [class.open]="expandedSpell === spell.name">
+
+          <div class="spell-meta-grid">
+
+            <div><strong>Casting Time:</strong> {{ getCastingTime(spell) }}</div>
+
+            <div><strong>Range:</strong> {{ getRange(spell) }}</div>
+
+            <div>
+              <strong>Duration:</strong>
+              {{ getDuration(spell) }}
+              <span *ngIf="isConcentration(spell)"> (Concentration)</span>
+            </div>
+
+            <div><strong>Components:</strong> {{ getComponents(spell) }}</div>
+
+            <div *ngIf="isRitual(spell)">
+              <strong>Ritual</strong>
+            </div>
+
+            <div><strong>Classes:</strong> {{ getClasses(spell) }}</div>
+
+          </div>
+
+          <div
+            *ngFor="let entry of spell.entries"
+            class="spell-paragraph"
+            [innerHTML]="formatEntry(entry)">
+          </div>
+
+        </div>
+
       </div>
 
-      <div class="spell-school">
-        {{ getSchoolName(spell.school) }}
-      </div>
-    </div>
-
-    <div class="spell-level">
-      {{ spell.level === 0 ? 'Cantrip' : 'Lv ' + spell.level }}
-    </div>
-
-  </div>
-
-  <!-- EXPANDABLE CONTENT -->
-  <div
-    class="spell-details"
-    [class.open]="expandedSpell === spell.name">
-
-    <div class="spell-meta-grid">
-
-  <div><strong>Casting Time:</strong> {{ getCastingTime(spell) }}</div>
-
-  <div><strong>Range:</strong> {{ getRange(spell) }}</div>
-
-  <div><strong>Duration:</strong>
-    {{ getDuration(spell) }}
-    <span *ngIf="isConcentration(spell)"> (Concentration)</span>
-  </div>
-
-  <div><strong>Components:</strong> {{ getComponents(spell) }}</div>
-
-  <div *ngIf="isRitual(spell)">
-    <strong>Ritual</strong>
-  </div>
-
-  <div><strong>Classes:</strong> {{ getClasses(spell) }}</div>
-
-</div>
-
-<div
-  *ngFor="let entry of spell.entries"
-  class="spell-paragraph"
-  [innerHTML]="formatEntry(entry)">
-</div>
-
-
-  </div>
-
-</div>
-
-
-
-
     </div>
 
   </div>
 
 </div>
+
 
 
 

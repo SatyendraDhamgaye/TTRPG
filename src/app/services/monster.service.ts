@@ -37,7 +37,11 @@ export class MonsterService {
             image: this.getImagePath(monster.name)
           }));
 
-          this.filterByExistingImages(monsters);
+          // Avoid preloading every image here.
+          // Missing images are handled by template-level fallback.
+          this._monsters.set(monsters);
+          this._loading.set(false);
+          this.loaded = true;
         },
         error: () => {
           this._monsters.set([]);
@@ -45,41 +49,6 @@ export class MonsterService {
           this.loaded = true;
         }
       });
-  }
-
-  // Remove monsters whose image files do not exist in the public assets.
-  private filterByExistingImages(monsters: MonsterData[]): void {
-    if (monsters.length === 0) {
-      this._monsters.set([]);
-      this._loading.set(false);
-      this.loaded = true;
-      return;
-    }
-
-    const valid: MonsterData[] = [];
-    let checkedCount = 0;
-
-    const completeCheck = (): void => {
-      checkedCount += 1;
-
-      if (checkedCount === monsters.length) {
-        this._monsters.set(valid);
-        this._loading.set(false);
-        this.loaded = true;
-      }
-    };
-
-    monsters.forEach((monster) => {
-      const image = new Image();
-      image.src = monster.image;
-
-      image.onload = () => {
-        valid.push(monster);
-        completeCheck();
-      };
-
-      image.onerror = () => completeCheck();
-    });
   }
 
   // Build image path from monster name using slug normalization.
