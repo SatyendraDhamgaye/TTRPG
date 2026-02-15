@@ -272,6 +272,7 @@ private parseRuleTags(text: string): string {
     }
 
     return visibleMonsters.filter((monster) => monster.name.toLowerCase().includes(term));
+    
   });
 
   // Update monster search state used by computed filtering.
@@ -299,23 +300,17 @@ private parseRuleTags(text: string): string {
   }
 
   // Spell list filtered and sorted using memoized recomputation.
-  readonly filteredSpells = computed(() => {
-    const term = this.spellSearchTerm().trim().toLowerCase();
-    const spells = this.spellService.spells();
+readonly filteredSpells = computed(() => {
+  const term = this.spellSearchTerm().trim().toLowerCase();
+  const spells = this.spellService.spells();
 
-    let result = spells;
-    if (term) {
-      result = spells.filter((spell) => spell.name.toLowerCase().includes(term));
-    }
+  if (!term) return spells;
 
-    return [...result].sort((a, b) => {
-      if (a.level !== b.level) {
-        return a.level - b.level;
-      }
+  return spells.filter(spell =>
+    spell.name.toLowerCase().includes(term)
+  );
+});
 
-      return a.name.localeCompare(b.name);
-    });
-  });
 
   // Update spell search term used by computed filtering.
   onSpellSearchChange(value: string): void {

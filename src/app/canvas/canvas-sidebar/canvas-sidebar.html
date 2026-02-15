@@ -2,7 +2,7 @@
   <!-- Top navigation for switching sidebar modes. -->
   <div class="top-bar">
     <i (click)="setMode('map')" [class.active]="mode === 'map'" title="Map">🗺</i>
-    <i (click)="setMode('characters')" [class.active]="mode === 'characters'" title="Characters">👤</i>
+    <!--<i (click)="setMode('characters')" [class.active]="mode === 'characters'" title="Characters">👤</i>-->
     <i (click)="setMode('tokens')" [class.active]="mode === 'tokens'" title="Tokens">🎴</i>
     <i (click)="setMode('monsters')" [class.active]="mode === 'monsters'" title="Monsters">🧟</i>
     <i (click)="setMode('spells')" [class.active]="mode === 'spells'" title="Spells">✨</i>
@@ -125,7 +125,8 @@
           </div>
 
           <!-- EXPANDABLE CONTENT -->
-          <div class="spell-details" [class.open]="expandedSpell === spell.name">
+          <div *ngIf="expandedSpell === spell.name"
+     class="spell-details open">
 
             <div class="spell-meta-grid">
 
@@ -344,11 +345,11 @@
   <div *ngIf="mode === 'map'" class="empty">
     Map tools coming soon...
   </div>
-
+<!--
   <div *ngIf="mode === 'characters'" class="empty">
     Characters coming soon...
   </div>
-
+-->
 
 
   <div *ngIf="mode === 'settings'" class="empty">

@@ -15,21 +15,34 @@ export class SpellService {
   spells = this._spells.asReadonly();
   loading = this._loading.asReadonly();
 
-  load(): void {
-    if (this._loaded) return;
+load(): void {
+  if (this._loaded) return;
 
-    this._loading.set(true);
+  this._loading.set(true);
 
-    this.http.get<any>('compendium/spells/spells-all.json')
-      .subscribe({
-        next: (data) => {
-          this._spells.set(data.spell ?? []);
-          this._loaded = true;
-          this._loading.set(false);
-        },
-        error: () => {
-          this._loading.set(false);
-        }
-      });
-  }
+  this.http.get<any>('compendium/spells/spells-all.json')
+    .subscribe({
+      next: (data) => {
+
+        const spells: Spell[] = data.spell ?? [];
+
+        // 🔥 Sort once here
+        spells.sort((a, b) => {
+          if (a.level !== b.level) {
+            return a.level - b.level;
+          }
+          return a.name.localeCompare(b.name);
+        });
+
+        this._spells.set(spells);
+
+        this._loaded = true;
+        this._loading.set(false);
+      },
+      error: () => {
+        this._loading.set(false);
+      }
+    });
+}
+
 }
