@@ -31,6 +31,7 @@ interface PlacedEntity {
 export class MapCanvasComponent implements AfterViewInit, OnChanges, OnDestroy {
   // Campaign id is provided by the shell route wrapper.
   @Input() campaignId: string | null = null;
+  @Input() gridSize = 100;
 
   configStage: StageConfig = {
     width: window.innerWidth,
@@ -38,7 +39,6 @@ export class MapCanvasComponent implements AfterViewInit, OnChanges, OnDestroy {
     draggable: true
   };
 
-  gridSize = 100;
   mapWidth = 0;
   mapHeight = 0;
 
@@ -106,6 +106,11 @@ constructor(
 
   // React to campaign switches and reload board tokens.
   ngOnChanges(changes: SimpleChanges): void {
+    const gridSizeChange = changes['gridSize'];
+    if (gridSizeChange && !gridSizeChange.firstChange && this.gridLayer) {
+      this.updateGridSize(Number(gridSizeChange.currentValue));
+    }
+
     if (!changes['campaignId'] || !this.campaignId) {
       return;
     }
@@ -163,10 +168,19 @@ constructor(
 
     this.tokenLayer?.getChildren().forEach((node) => {
       if (node instanceof Konva.Group) {
+        const tokenImage = node.findOne('Image');
+        if (tokenImage instanceof Konva.Image) {
+          tokenImage.x(-this.gridSize / 2);
+          tokenImage.y(-this.gridSize / 2);
+          tokenImage.width(this.gridSize);
+          tokenImage.height(this.gridSize);
+        }
+
         this.snapGroup(node);
       }
     });
 
+    this.transformer?.forceUpdate();
     this.tokenLayer?.draw();
   }
 

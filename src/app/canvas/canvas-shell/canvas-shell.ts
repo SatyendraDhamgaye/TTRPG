@@ -22,6 +22,8 @@ export class CanvasShellComponent {
   campaignId: string | null = null;
   // Display name shown in the shell overlay.
   campaignName = '';
+  // Shared grid size controlled from settings sidebar.
+  gridSize = 100;
 
 
   constructor(
@@ -40,5 +42,6 @@ export class CanvasShellComponent {
     }
   }
 }
+
 
 

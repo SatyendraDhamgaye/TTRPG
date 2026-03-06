@@ -1,4 +1,4 @@
-import { Component, ElementRef, Input, ViewChild, computed, signal } from '@angular/core';
+import { Component, ElementRef, EventEmitter, Input, Output, SimpleChanges, ViewChild, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -37,6 +37,8 @@ type SidebarMode =
 export class CanvasSidebarComponent {
   // Campaign scope is provided by the shell component.
   @Input() campaignId: string | null = null;
+  @Input() gridSize = 100;
+  @Output() gridSizeChange = new EventEmitter<number>();
   @ViewChild('tokenFileInput') private tokenFileInput?: ElementRef<HTMLInputElement>;
   @ViewChild('mapFileInput') private mapFileInput?: ElementRef<HTMLInputElement>;
 
@@ -148,8 +150,9 @@ deleteMap(id: string): void {
   this.mapService.delete(id);
 }
 
-ngOnChanges() {
-  if (this.campaignId) {
+ngOnChanges(changes: SimpleChanges): void {
+  const campaignChanged = !!changes['campaignId'];
+  if (campaignChanged && this.campaignId) {
     this.mapService.setCampaign(this.campaignId);
   }
 }
@@ -655,5 +658,15 @@ onFile(event: Event): void {
   // Begin drag operation for an existing token.
   dragStart(event: DragEvent, token: TokenData): void {
     event.dataTransfer?.setData('token', JSON.stringify(token));
+  }
+
+  onGridSizeInput(value: number | string): void {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) {
+      return;
+    }
+
+    this.gridSize = parsed;
+    this.gridSizeChange.emit(parsed);
   }
 }

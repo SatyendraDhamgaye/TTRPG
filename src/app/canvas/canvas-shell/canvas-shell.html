@@ -1,10 +1,10 @@
 <div class="canvas-layout">
   <!-- Main map canvas for the active campaign. -->
-  <app-map-canvas [campaignId]="campaignId">
+  <app-map-canvas [campaignId]="campaignId" [gridSize]="gridSize">
   </app-map-canvas>
 
   <!-- Sidebar with token, monster, and utility panels. -->
-  <app-canvas-sidebar [campaignId]="campaignId">
+  <app-canvas-sidebar [campaignId]="campaignId" [gridSize]="gridSize" (gridSizeChange)="gridSize = $event">
   </app-canvas-sidebar>
 
   <div class="game-id-badge">

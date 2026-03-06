@@ -413,8 +413,20 @@
 -->
 
 
-  <div *ngIf="mode === 'settings'" class="empty">
-    Settings panel coming soon...
+  <div *ngIf="mode === 'settings'" class="mode-container">
+    <div class="creator">
+      <div class="section-title">Grid Settings</div>
+
+      <label for="grid-size-slider">Grid Size: {{ gridSize }} px</label>
+      <input
+        id="grid-size-slider"
+        type="range"
+        min="40"
+        max="180"
+        step="10"
+        [ngModel]="gridSize"
+        (ngModelChange)="onGridSizeInput($event)" />
+    </div>
   </div>
 
 
