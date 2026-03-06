@@ -8,6 +8,8 @@ import { CampaignStorageService } from '../../campaign-storage.service';
 import { TokenData } from '../../models/token.model';
 import { TokenService } from '../../services/token.service';
 import { HostListener } from '@angular/core';
+import { MapService } from '../../services/map.service';
+import { effect } from '@angular/core';
 
 interface PlacedEntity {
   id: string;
@@ -53,10 +55,23 @@ export class MapCanvasComponent implements AfterViewInit, OnChanges {
   private selectedTokens: Konva.Group[] = [];
 
 
-  constructor(
-    private readonly store: CampaignStorageService,
-    private readonly tokenService: TokenService
-  ) {}
+constructor(
+  private readonly store: CampaignStorageService,
+  private readonly tokenService: TokenService,
+  private readonly mapService: MapService
+) {
+
+  effect(() => {
+    const active = this.mapService.activeMap();
+
+    // Only load map if Konva is ready
+    if (this.mapLayer) {
+      this.loadMap();
+    }
+  });
+
+}
+
 
   // Initialize Konva and campaign context after the view is rendered.
   ngAfterViewInit(): void {
@@ -120,7 +135,10 @@ export class MapCanvasComponent implements AfterViewInit, OnChanges {
     this.tokenLayer = layers[3];
 
     this.buildGrid();
-    this.loadMap();
+
+
+
+
 
     this.stage.on('mousedown', (event: Konva.KonvaEventObject<MouseEvent>) => {
   if (event.target === this.stage) {
@@ -282,29 +300,47 @@ export class MapCanvasComponent implements AfterViewInit, OnChanges {
   }
 
   // Load and render current map image.
-  private loadMap(): void {
-    const image = new Image();
-    image.src = '/maps/battleMap001.jpeg';
+private loadMap(): void {
+  const active = this.mapService.activeMap();
 
-    image.onload = () => {
-      this.mapWidth = image.width;
-      this.mapHeight = image.height;
+  // If no active map → clear canvas
+  if (!active) {
+    this.mapLayer?.destroyChildren();
+    this.gridLayer?.destroyChildren();
+    this.tokenLayer?.destroyChildren();
 
-      this.mapLayer.add(
-        new Konva.Image({
-          image,
-          x: 0,
-          y: 0,
-          width: image.width,
-          height: image.height,
-          listening: false
-        })
-      );
+    this.mapLayer?.draw();
+    this.gridLayer?.draw();
+    this.tokenLayer?.draw();
 
-      this.mapLayer.draw();
-      this.buildGrid();
-    };
+    return;
   }
+
+  const image = new Image();
+  image.src = active.image;
+
+  image.onload = () => {
+    this.mapWidth = image.width;
+    this.mapHeight = image.height;
+
+    this.mapLayer.destroyChildren();
+
+    this.mapLayer.add(
+      new Konva.Image({
+        image,
+        x: 0,
+        y: 0,
+        width: image.width,
+        height: image.height,
+        listening: false
+      })
+    );
+
+    this.mapLayer.draw();
+    this.buildGrid();
+  };
+}
+
 
   // Normalize token image into a centered square texture.
   private prepareTokenImage(source: HTMLImageElement): HTMLImageElement {

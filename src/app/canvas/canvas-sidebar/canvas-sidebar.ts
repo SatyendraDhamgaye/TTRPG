@@ -12,6 +12,8 @@ import { MusicService } from '../../services/music.service';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { RuleService } from '../../services/rule.service';
 import { RuleData } from '../../models/rule.model';
+import { MapService } from '../../services/map.service';
+import { NgZone } from '@angular/core';
 
 
 
@@ -37,7 +39,7 @@ export class CanvasSidebarComponent {
   @Input() campaignId: string | null = null;
 
   name = '';
-  image = '';
+  image = signal<string>('');
   search = '';
   monsterSearch = '';
   size: TokenData['size'] = 'medium';
@@ -49,6 +51,12 @@ export class CanvasSidebarComponent {
   ruleSearch = '';
 private readonly ruleSearchTerm = signal('');
 expandedRule: string | null = null;
+mapName = '';
+mapImage = signal<string>('');
+
+
+
+
 
 
 
@@ -63,7 +71,9 @@ expandedRule: string | null = null;
   private spellService: SpellService,
   private musicService: MusicService,   
   private ruleService: RuleService,
-  private sanitizer: DomSanitizer
+  private sanitizer: DomSanitizer,
+  public mapService: MapService,
+  private ngZone: NgZone
   ) {
     this.tokens = this.tokenService.tokens;
   }
@@ -89,7 +99,59 @@ if (mode === 'rules') {
 }
 
 
+
+
+
 }
+
+onMapFile(event: Event): void {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+
+  reader.onload = () => {
+    this.mapImage.set(reader.result as string);
+  };
+
+  reader.readAsDataURL(file);
+}
+
+
+
+
+
+createMap(): void {
+  if (!this.mapImage() || !this.mapName) {
+    alert('Please provide map name and image');
+    return;
+  }
+
+  this.mapService.create(this.mapName, this.mapImage());
+
+  this.mapName = '';
+  this.mapImage.set('');
+
+  const fileInput = document.querySelector('#map-file') as HTMLInputElement;
+  if (fileInput) fileInput.value = '';
+}
+
+
+activateMap(id: string): void {
+  this.mapService.setActive(id);
+}
+
+deleteMap(id: string): void {
+  this.mapService.delete(id);
+}
+
+ngOnChanges() {
+  if (this.campaignId) {
+    this.mapService.setCampaign(this.campaignId);
+  }
+}
+
 
 
 
@@ -515,19 +577,19 @@ isRitual(spell: any): boolean {
   }
 
   // Load local file as a data URL for custom token creation.
-  onFile(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const file = input.files?.[0];
-    if (!file) {
-      return;
-    }
+onFile(event: Event): void {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      this.image = (reader.result as string) || '';
-    };
-    reader.readAsDataURL(file);
-  }
+  const reader = new FileReader();
+
+  reader.onload = () => {
+    this.image.set(reader.result as string);
+  };
+
+  reader.readAsDataURL(file);
+}
 
   // Token list filtered by prefix matching against each search word.
   get filteredTokens(): TokenData[] {
@@ -557,7 +619,7 @@ isRitual(spell: any): boolean {
     const token = {
       id: crypto.randomUUID(),
       name: this.name || 'Token',
-      image: this.image,
+      image: this.image(),
       size: this.size,
       campaignId: this.campaignId ?? undefined
     };
@@ -566,7 +628,7 @@ isRitual(spell: any): boolean {
 
     this.name = '';
     this.size = 'medium';
-    this.image = '';
+    this.image.set('');
 
     const fileInput =
       document.querySelector('input[type="file"]') as HTMLInputElement;

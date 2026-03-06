@@ -36,8 +36,8 @@
       <input type="file" (change)="onFile($event)" />
 
       <div class="preview">
-        <img *ngIf="image" [src]="image" />
-        <span *ngIf="!image">No Image</span>
+        <img *ngIf="image()" [src]="image()" />
+<span *ngIf="!image()">No Image</span>
       </div>
 
       <select [(ngModel)]="size">
@@ -335,6 +335,68 @@
 
 
 
+<div *ngIf="mode === 'map'" class="mode-container map-mode">
+
+  <!-- CREATE MAP -->
+  <div class="creator">
+
+    <div class="section-title">Create Map</div>
+
+    <input
+      placeholder="Map Name" type="text"
+      [(ngModel)]="mapName" />
+
+    <input
+      id="map-file"
+      type="file"
+      accept="image/*"
+      (change)="onMapFile($event)" />
+
+    <div class="preview">
+  <img *ngIf="mapImage()" [src]="mapImage()" />
+  <span *ngIf="!mapImage()">No Image</span>
+</div>
+
+
+    <button (click)="createMap()">Create Map</button>
+  </div>
+
+  <!-- MAP LIST -->
+  <div class="scroll-zone">
+
+    <div class="section-title">Maps</div>
+
+    <div *ngIf="mapService.maps().length === 0" class="empty">
+
+      No maps created yet.
+    </div>
+
+    <div class="token-list">
+
+      <div
+        class="token-row"
+        *ngFor="let m of mapService.maps()"
+        [class.active]="mapService.activeMap()?.id === m.id">
+
+        <div class="map-row-content" (click)="activateMap(m.id)">
+
+          <div class="img-frame">
+            <img [src]="m.image" />
+          </div>
+
+          <span>{{ m.name }}</span>
+
+        </div>
+
+        <button (click)="deleteMap(m.id)">✕</button>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
 
 
 
@@ -342,9 +404,7 @@
 
   <!-- Placeholder panels for unfinished modes. -->
 
-  <div *ngIf="mode === 'map'" class="empty">
-    Map tools coming soon...
-  </div>
+ 
 <!--
   <div *ngIf="mode === 'characters'" class="empty">
     Characters coming soon...
