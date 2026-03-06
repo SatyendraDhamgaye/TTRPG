@@ -1,5 +1,6 @@
 import { Injectable, signal, computed } from '@angular/core';
 import { GameMap } from '../models/map.model';
+import { ImageStorageService } from './image-storage.service';
 
 @Injectable({ providedIn: 'root' })
 export class MapService {
@@ -32,8 +33,8 @@ export class MapService {
     ) || null;
   });
 
-  constructor() {
-    this.loadFromStorage();
+  constructor(private readonly imageStorage: ImageStorageService) {
+    void this.loadFromStorage();
   }
 
   // ===============================
@@ -49,22 +50,50 @@ export class MapService {
   // Storage
   // ===============================
 
-  private loadFromStorage(): void {
+  private async loadFromStorage(): Promise<void> {
     const raw = localStorage.getItem(this.STORAGE_KEY);
     if (!raw) return;
 
     try {
       const parsed: GameMap[] = JSON.parse(raw);
-      this._maps.set(parsed);
+
+      const resolved = await Promise.all(
+        parsed.map(async (map) => {
+          // Legacy migration path: map image stored directly in localStorage.
+          if (!map.imageId && map.image?.startsWith('data:')) {
+            const imageId = `map-${map.id}`;
+            await this.imageStorage.saveDataUrl(imageId, map.image);
+            return { ...map, imageId };
+          }
+
+          if (!map.imageId) {
+            return map;
+          }
+
+          const dataUrl = await this.imageStorage.getDataUrl(map.imageId);
+          return {
+            ...map,
+            image: dataUrl ?? map.image
+          };
+        })
+      );
+
+      this._maps.set(resolved);
+      this.saveToStorage();
     } catch {
       this._maps.set([]);
     }
   }
 
   private saveToStorage(): void {
+    const serialized = this._maps().map((map) => ({
+      ...map,
+      image: map.imageId ? '' : map.image
+    }));
+
     localStorage.setItem(
       this.STORAGE_KEY,
-      JSON.stringify(this._maps())
+      JSON.stringify(serialized)
     );
   }
 
@@ -72,15 +101,22 @@ export class MapService {
   // CRUD
   // ===============================
 
-  create(name: string, image: string): void {
+  async create(name: string, image: string): Promise<void> {
     const campaignId = this._campaignId();
     if (!campaignId) return;
+
+    const imageId = image.startsWith('data:') ? `map-${crypto.randomUUID()}` : undefined;
+
+    if (imageId) {
+      await this.imageStorage.saveDataUrl(imageId, image);
+    }
 
     const newMap: GameMap = {
       id: crypto.randomUUID(),
       campaignId,
       name,
       image,
+      imageId,
       createdAt: Date.now()
     };
 
@@ -91,7 +127,12 @@ export class MapService {
 
   }
 
-  delete(id: string): void {
+  async delete(id: string): Promise<void> {
+    const target = this._maps().find((m) => m.id === id);
+    if (target?.imageId) {
+      await this.imageStorage.delete(target.imageId);
+    }
+
     this._maps.update(prev => prev.filter(m => m.id !== id));
 
     if (this._activeMapId() === id) {

@@ -1,5 +1,6 @@
 import { Injectable, signal, computed } from '@angular/core';
 import { TokenData } from '../models/token.model';
+import { ImageStorageService } from './image-storage.service';
 
 interface CampaignTokenStore {
   [campaignId: string]: TokenData[];
@@ -23,34 +24,51 @@ export class TokenService {
     return this.store()[id] || [];
   });
 
-  constructor() {
-    this.load();
+  constructor(private readonly imageStorage: ImageStorageService) {
+    void this.load();
   }
 
   setCampaign(id: string | null): void {
     this.activeCampaign.set(id);
   }
 
-  add(token: TokenData & { campaignId?: string }): void {
+  async add(token: TokenData & { campaignId?: string }): Promise<void> {
     const id = token.campaignId || this.activeCampaign();
 
     if (!id) return;
+
+    let imageId = token.imageId;
+
+    if (!imageId && token.image?.startsWith('data:')) {
+      imageId = `token-${crypto.randomUUID()}`;
+      await this.imageStorage.saveDataUrl(imageId, token.image);
+    }
+
+    const tokenToStore: TokenData = {
+      ...token,
+      imageId
+    };
 
     this.store.update((all) => {
       const list = all[id] || [];
 
       return {
         ...all,
-        [id]: [...list, token]
+        [id]: [...list, tokenToStore]
       };
     });
 
     this.save();
   }
 
-  remove(id: string): void {
+  async remove(id: string): Promise<void> {
     const camp = this.activeCampaign();
     if (!camp) return;
+
+    const existing = (this.store()[camp] || []).find((x) => x.id === id);
+    if (existing?.imageId) {
+      await this.imageStorage.delete(existing.imageId);
+    }
 
     this.store.update((all) => {
       const list = all[camp] || [];
@@ -76,16 +94,54 @@ export class TokenService {
 
   // Persist token store to localStorage.
   private save(): void {
-    localStorage.setItem('vtt_tokens', JSON.stringify(this.store()));
+    const serialized: CampaignTokenStore = {};
+
+    Object.entries(this.store()).forEach(([campaignId, tokens]) => {
+      serialized[campaignId] = tokens.map((token) => ({
+        ...token,
+        image: token.imageId ? '' : token.image
+      }));
+    });
+
+    localStorage.setItem('vtt_tokens', JSON.stringify(serialized));
   }
 
   // Load token store from localStorage.
-  private load(): void {
+  private async load(): Promise<void> {
     try {
       const raw = localStorage.getItem('vtt_tokens');
       if (!raw) return;
 
-      this.store.set(JSON.parse(raw));
+      const parsed = JSON.parse(raw) as CampaignTokenStore;
+      const hydrated: CampaignTokenStore = {};
+
+      for (const [campaignId, tokens] of Object.entries(parsed)) {
+        hydrated[campaignId] = await Promise.all(
+          tokens.map(async (token) => {
+            if (!token.imageId && token.image?.startsWith('data:')) {
+              const migratedId = `token-${token.id}`;
+              await this.imageStorage.saveDataUrl(migratedId, token.image);
+              return {
+                ...token,
+                imageId: migratedId
+              };
+            }
+
+            if (!token.imageId) {
+              return token;
+            }
+
+            const dataUrl = await this.imageStorage.getDataUrl(token.imageId);
+            return {
+              ...token,
+              image: dataUrl ?? token.image
+            };
+          })
+        );
+      }
+
+      this.store.set(hydrated);
+      this.save();
     } catch {}
   }
 }

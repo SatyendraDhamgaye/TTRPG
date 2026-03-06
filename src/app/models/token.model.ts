@@ -4,6 +4,7 @@ export interface TokenData {
   id: string;
   name: string;
   image: string;
+  imageId?: string;
   size: TokenSize;
   crop?: {
   offsetX: number;

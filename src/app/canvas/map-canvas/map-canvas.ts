@@ -1,4 +1,4 @@
-import { AfterViewInit, Component, Input, OnChanges, SimpleChanges } from '@angular/core';
+import { AfterViewInit, Component, Input, OnChanges, OnDestroy, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import Konva from 'konva';
 import { StageConfig } from 'konva/lib/Stage';
@@ -28,7 +28,7 @@ interface PlacedEntity {
   templateUrl: './map-canvas.html',
   styleUrls: ['./map-canvas.scss']
 })
-export class MapCanvasComponent implements AfterViewInit, OnChanges {
+export class MapCanvasComponent implements AfterViewInit, OnChanges, OnDestroy {
   // Campaign id is provided by the shell route wrapper.
   @Input() campaignId: string | null = null;
 
@@ -53,6 +53,15 @@ export class MapCanvasComponent implements AfterViewInit, OnChanges {
 
   private transformer: Konva.Transformer | null = null;
   private selectedTokens: Konva.Group[] = [];
+  private readonly onStageMouseDown = (event: Konva.KonvaEventObject<MouseEvent>): void => {
+    if (event.target === this.stage) {
+      this.selectedTokens = [];
+      this.transformer?.destroy();
+      this.transformer = null;
+      this.tokenLayer.draw();
+      this.updateHighlight();
+    }
+  };
 
 
 constructor(
@@ -85,6 +94,14 @@ constructor(
     }, 200);
 
     window.addEventListener('resize', this.onResize);
+  }
+
+  ngOnDestroy(): void {
+    window.removeEventListener('resize', this.onResize);
+
+    if (this.stage) {
+      this.stage.off('mousedown', this.onStageMouseDown);
+    }
   }
 
   // React to campaign switches and reload board tokens.
@@ -135,20 +152,7 @@ constructor(
     this.tokenLayer = layers[3];
 
     this.buildGrid();
-
-
-
-
-
-    this.stage.on('mousedown', (event: Konva.KonvaEventObject<MouseEvent>) => {
-  if (event.target === this.stage) {
-    this.selectedTokens = [];
-    this.transformer?.destroy();
-    this.transformer = null;
-    this.tokenLayer.draw();
-    this.updateHighlight();
-  }
-});
+    this.stage.on('mousedown', this.onStageMouseDown);
 
   }
 

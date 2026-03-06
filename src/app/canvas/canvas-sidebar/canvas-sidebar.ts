@@ -1,4 +1,4 @@
-import { Component, Input, computed, signal } from '@angular/core';
+import { Component, ElementRef, Input, ViewChild, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -37,6 +37,8 @@ type SidebarMode =
 export class CanvasSidebarComponent {
   // Campaign scope is provided by the shell component.
   @Input() campaignId: string | null = null;
+  @ViewChild('tokenFileInput') private tokenFileInput?: ElementRef<HTMLInputElement>;
+  @ViewChild('mapFileInput') private mapFileInput?: ElementRef<HTMLInputElement>;
 
   name = '';
   image = signal<string>('');
@@ -132,9 +134,9 @@ createMap(): void {
 
   this.mapName = '';
   this.mapImage.set('');
-
-  const fileInput = document.querySelector('#map-file') as HTMLInputElement;
-  if (fileInput) fileInput.value = '';
+  if (this.mapFileInput?.nativeElement) {
+    this.mapFileInput.nativeElement.value = '';
+  }
 }
 
 
@@ -611,7 +613,7 @@ onFile(event: Event): void {
 
   // Create a campaign-scoped custom token entry.
   create(): void {
-    if (!this.image) {
+    if (!this.image()) {
       alert('Please select image first');
       return;
     }
@@ -630,11 +632,8 @@ onFile(event: Event): void {
     this.size = 'medium';
     this.image.set('');
 
-    const fileInput =
-      document.querySelector('input[type="file"]') as HTMLInputElement;
-
-    if (fileInput) {
-      fileInput.value = '';
+    if (this.tokenFileInput?.nativeElement) {
+      this.tokenFileInput.nativeElement.value = '';
     }
   }
 

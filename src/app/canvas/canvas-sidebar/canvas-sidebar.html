@@ -33,7 +33,7 @@
       New Token
       <input [(ngModel)]="name" placeholder="Name" />
 
-      <input type="file" (change)="onFile($event)" />
+      <input #tokenFileInput type="file" (change)="onFile($event)" />
 
       <div class="preview">
         <img *ngIf="image()" [src]="image()" />
@@ -347,6 +347,7 @@
       [(ngModel)]="mapName" />
 
     <input
+      #mapFileInput
       id="map-file"
       type="file"
       accept="image/*"
