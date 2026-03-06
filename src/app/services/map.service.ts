@@ -6,6 +6,7 @@ import { ImageStorageService } from './image-storage.service';
 export class MapService {
 
   private readonly STORAGE_KEY = 'vtt-maps';
+  private readonly defaultGridSize = 100;
 
   // All maps (all campaigns)
   private _maps = signal<GameMap[]>([]);
@@ -59,21 +60,26 @@ export class MapService {
 
       const resolved = await Promise.all(
         parsed.map(async (map) => {
-          // Legacy migration path: map image stored directly in localStorage.
-          if (!map.imageId && map.image?.startsWith('data:')) {
-            const imageId = `map-${map.id}`;
-            await this.imageStorage.saveDataUrl(imageId, map.image);
-            return { ...map, imageId };
-          }
-
-          if (!map.imageId) {
-            return map;
-          }
-
-          const dataUrl = await this.imageStorage.getDataUrl(map.imageId);
-          return {
+          const withGrid = {
             ...map,
-            image: dataUrl ?? map.image
+            gridSize: Number.isFinite(map.gridSize) ? map.gridSize : this.defaultGridSize
+          };
+
+          // Legacy migration path: map image stored directly in localStorage.
+          if (!withGrid.imageId && withGrid.image?.startsWith('data:')) {
+            const imageId = `map-${withGrid.id}`;
+            await this.imageStorage.saveDataUrl(imageId, withGrid.image);
+            return { ...withGrid, imageId };
+          }
+
+          if (!withGrid.imageId) {
+            return withGrid;
+          }
+
+          const dataUrl = await this.imageStorage.getDataUrl(withGrid.imageId);
+          return {
+            ...withGrid,
+            image: dataUrl ?? withGrid.image
           };
         })
       );
@@ -117,6 +123,7 @@ export class MapService {
       name,
       image,
       imageId,
+      gridSize: this.defaultGridSize,
       createdAt: Date.now()
     };
 
@@ -148,5 +155,25 @@ export class MapService {
 
   clearActive(): void {
     this._activeMapId.set(null);
+  }
+
+  setActiveMapGridSize(size: number): void {
+    const activeId = this._activeMapId();
+    const campaignId = this._campaignId();
+    if (!activeId || !campaignId || !Number.isFinite(size)) {
+      return;
+    }
+
+    this._maps.update((prev) =>
+      prev.map((map) => {
+        if (map.id !== activeId || map.campaignId !== campaignId) {
+          return map;
+        }
+
+        return { ...map, gridSize: size };
+      })
+    );
+
+    this.saveToStorage();
   }
 }

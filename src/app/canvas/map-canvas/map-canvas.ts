@@ -14,6 +14,7 @@ import { effect } from '@angular/core';
 interface PlacedEntity {
   id: string;
   type: 'token' | 'monster';
+  mapId?: string | null;
   x: number;
   y: number;
   cells: number;
@@ -53,6 +54,7 @@ export class MapCanvasComponent implements AfterViewInit, OnChanges, OnDestroy {
 
   private transformer: Konva.Transformer | null = null;
   private selectedTokens: Konva.Group[] = [];
+  private lastLoadedMapKey: string | null = null;
   private readonly onStageMouseDown = (event: Konva.KonvaEventObject<MouseEvent>): void => {
     if (event.target === this.stage) {
       this.selectedTokens = [];
@@ -72,9 +74,12 @@ constructor(
 
   effect(() => {
     const active = this.mapService.activeMap();
+    const nextMapKey = active ? `${active.id}|${active.image}` : null;
 
-    // Only load map if Konva is ready
-    if (this.mapLayer) {
+    // Only reload map when actual map identity/content changes.
+    // Grid-size-only updates should not trigger full map reload.
+    if (this.mapLayer && nextMapKey !== this.lastLoadedMapKey) {
+      this.lastLoadedMapKey = nextMapKey;
       this.loadMap();
     }
   });
@@ -236,8 +241,18 @@ constructor(
     this.tokensLoaded = true;
     this.tokenLayer.destroyChildren();
 
+    const activeMapId = this.mapService.activeMap()?.id ?? null;
     const library = this.tokenService.tokens();
-    campaign.board.tokens.forEach((token: any) => {
+    const tokensForActiveMap = campaign.board.tokens.filter((token: any) => {
+      // Legacy tokens without mapId are treated as global to preserve old saves.
+      if (token.mapId === undefined) {
+        return true;
+      }
+
+      return token.mapId === activeMapId;
+    });
+
+    tokensForActiveMap.forEach((token: any) => {
       const image = new Image();
 
       if (token.type === 'monster' && token.data?.image) {
@@ -265,6 +280,10 @@ constructor(
       return;
     }
 
+    const activeMapId = this.mapService.activeMap()?.id ?? null;
+    const campaign = this.store.get(this.campaignId);
+    const existingBoardTokens = campaign?.board?.tokens ?? [];
+
     const placed: PlacedEntity[] = [];
 
     this.tokenLayer.getChildren().forEach((node) => {
@@ -276,6 +295,7 @@ constructor(
       placed.push({
         id: (node as any).attrs.tokenId,
         type: (node as any).attrs.entityType || 'token',
+        mapId: activeMapId,
         x: node.x(),
         y: node.y(),
         cells,
@@ -283,7 +303,15 @@ constructor(
       });
     });
 
-    this.store.updateBoard(this.campaignId, { tokens: placed });
+    const preservedOtherMaps = existingBoardTokens.filter((token: any) => {
+      if (token.mapId === undefined) {
+        return false;
+      }
+
+      return token.mapId !== activeMapId;
+    });
+
+    this.store.updateBoard(this.campaignId, { tokens: [...preservedOtherMaps, ...placed] });
   }
 
   // Build grid lines based on loaded map dimensions.
@@ -338,6 +366,10 @@ private loadMap(): void {
   image.src = active.image;
 
   image.onload = () => {
+    // Ensure map-specific grid is applied before restoring tokens,
+    // so restored coordinates are interpreted on the correct grid.
+    this.gridSize = active.gridSize ?? 100;
+
     this.mapWidth = image.width;
     this.mapHeight = image.height;
 
@@ -356,6 +388,9 @@ private loadMap(): void {
 
     this.mapLayer.draw();
     this.buildGrid();
+
+    this.tokensLoaded = false;
+    this.loadPlacedTokens();
   };
 }
 

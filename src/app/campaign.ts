@@ -3,6 +3,7 @@ import { TokenData } from './models/token.model';
 export interface BoardTokenState {
   id: string;
   type: 'token' | 'monster';
+  mapId?: string | null;
   x: number;
   y: number;
   cells: number;

@@ -3,6 +3,7 @@ export interface GameMap {
   name: string;
   image: string;
   imageId?: string;
+  gridSize?: number;
   createdAt: number;
   campaignId: string;
 }

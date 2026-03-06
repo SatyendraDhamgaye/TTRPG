@@ -1,10 +1,12 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { effect } from '@angular/core';
 
 import { MapCanvasComponent } from '../map-canvas/map-canvas';
 import { CanvasSidebarComponent } from '../canvas-sidebar/canvas-sidebar';
 import { ActivatedRoute } from '@angular/router';
 import { CampaignStorageService } from '../../campaign-storage.service';
+import { MapService } from '../../services/map.service';
 
 @Component({
   selector: 'app-canvas-shell',
@@ -28,8 +30,14 @@ export class CanvasShellComponent {
 
   constructor(
     private route: ActivatedRoute,
-    private store: CampaignStorageService
-  ) {}
+    private store: CampaignStorageService,
+    private mapService: MapService
+  ) {
+    effect(() => {
+      const activeMap = this.mapService.activeMap();
+      this.gridSize = activeMap?.gridSize ?? 100;
+    });
+  }
 
   // Resolve campaign context on shell load.
   ngOnInit() {
@@ -41,7 +49,13 @@ export class CanvasShellComponent {
       this.campaignName = camp?.name || id;
     }
   }
+
+  onGridSizeChange(size: number): void {
+    this.gridSize = size;
+    this.mapService.setActiveMapGridSize(size);
+  }
 }
+
 
 
 

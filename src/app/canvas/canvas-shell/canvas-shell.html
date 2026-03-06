@@ -4,7 +4,7 @@
   </app-map-canvas>
 
   <!-- Sidebar with token, monster, and utility panels. -->
-  <app-canvas-sidebar [campaignId]="campaignId" [gridSize]="gridSize" (gridSizeChange)="gridSize = $event">
+  <app-canvas-sidebar [campaignId]="campaignId" [gridSize]="gridSize" (gridSizeChange)="onGridSizeChange($event)">
   </app-canvas-sidebar>
 
   <div class="game-id-badge">
