@@ -227,12 +227,12 @@ constructor(
   }
 
   // Load placed token instances for the active campaign.
-  private loadPlacedTokens(): void {
+  private async loadPlacedTokens(): Promise<void> {
     if (this.tokensLoaded || !this.tokenLayer || !this.campaignId) {
       return;
     }
 
-    const campaign = this.store.get(this.campaignId);
+    const campaign = await this.store.get(this.campaignId);
     if (!campaign?.board?.tokens) {
       this.tokensLoaded = true;
       return;
@@ -275,13 +275,13 @@ constructor(
   }
 
   // Persist placed token instances to campaign board state.
-  private savePlacedTokens(): void {
+  private async savePlacedTokens(): Promise<void> {
     if (!this.campaignId) {
       return;
     }
 
     const activeMapId = this.mapService.activeMap()?.id ?? null;
-    const campaign = this.store.get(this.campaignId);
+    const campaign = await this.store.get(this.campaignId);
     const existingBoardTokens = campaign?.board?.tokens ?? [];
 
     const placed: PlacedEntity[] = [];
@@ -311,7 +311,7 @@ constructor(
       return token.mapId !== activeMapId;
     });
 
-    this.store.updateBoard(this.campaignId, { tokens: [...preservedOtherMaps, ...placed] });
+    await this.store.updateBoard(this.campaignId, { tokens: [...preservedOtherMaps, ...placed] });
   }
 
   // Build grid lines based on loaded map dimensions.

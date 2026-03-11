@@ -1,17 +1,26 @@
 import { Injectable } from '@angular/core';
 import { Campaign, CampaignBoard } from './campaign';
+import { IndexedDbStorageService } from './services/indexeddb-storage.service';
 
 @Injectable({ providedIn: 'root' })
 export class CampaignStorageService {
   private readonly key = 'vtt_campaigns';
 
-  getAll(): Campaign[] {
-    const raw = localStorage.getItem(this.key);
-    return raw ? JSON.parse(raw) : [];
+  constructor(private readonly dbStorage: IndexedDbStorageService) {}
+
+  async getAll(): Promise<Campaign[]> {
+    // Migrate legacy localStorage campaigns into IndexedDB on first load.
+    const migrated = await this.dbStorage.migrateJsonFromLocalStorage<Campaign[]>(this.key);
+    if (Array.isArray(migrated)) {
+      return migrated;
+    }
+
+    const stored = await this.dbStorage.get<Campaign[]>(this.key);
+    return Array.isArray(stored) ? stored : [];
   }
 
-  saveAll(list: Campaign[]): void {
-    localStorage.setItem(this.key, JSON.stringify(list));
+  async saveAll(list: Campaign[]): Promise<void> {
+    await this.dbStorage.set(this.key, list);
   }
 
   private randomCover(): string {
@@ -19,8 +28,8 @@ export class CampaignStorageService {
     return `/covers/${n}.jpg`;
   }
 
-  create(name: string, description: string): Campaign {
-    const campaigns = this.getAll();
+  async create(name: string, description: string): Promise<Campaign> {
+    const campaigns = await this.getAll();
 
     const newCamp: Campaign = {
       id: 'camp-' + Math.random().toString(36).substring(2, 9),
@@ -45,42 +54,42 @@ export class CampaignStorageService {
     };
 
     campaigns.push(newCamp);
-    this.saveAll(campaigns);
+    await this.saveAll(campaigns);
 
     return newCamp;
   }
 
-  update(camp: Campaign): void {
-    const campaigns = this.getAll();
+  async update(camp: Campaign): Promise<void> {
+    const campaigns = await this.getAll();
     const i = campaigns.findIndex((c) => c.id === camp.id);
 
     if (i !== -1) {
       campaigns[i] = camp;
-      this.saveAll(campaigns);
+      await this.saveAll(campaigns);
     }
   }
 
-  delete(id: string): void {
-    const filtered = this.getAll().filter((c) => c.id !== id);
-    this.saveAll(filtered);
+  async delete(id: string): Promise<void> {
+    const filtered = (await this.getAll()).filter((c) => c.id !== id);
+    await this.saveAll(filtered);
   }
 
-  markOpened(id: string): void {
-    const camps = this.getAll();
+  async markOpened(id: string): Promise<void> {
+    const camps = await this.getAll();
     const c = camps.find((x) => x.id === id);
 
     if (c) {
       c.lastOpened = Date.now();
-      this.saveAll(camps);
+      await this.saveAll(camps);
     }
   }
 
-  get(id: string): Campaign | undefined {
-    return this.getAll().find((c) => c.id === id);
+  async get(id: string): Promise<Campaign | undefined> {
+    return (await this.getAll()).find((c) => c.id === id);
   }
 
-  updateBoard(id: string, data: Partial<CampaignBoard>): void {
-    const camps = this.getAll();
+  async updateBoard(id: string, data: Partial<CampaignBoard>): Promise<void> {
+    const camps = await this.getAll();
     const camp = camps.find((c) => c.id === id);
 
     if (!camp) {
@@ -95,6 +104,6 @@ export class CampaignStorageService {
       ...data
     };
 
-    this.saveAll(camps);
+    await this.saveAll(camps);
   }
 }

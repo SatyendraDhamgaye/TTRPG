@@ -1,6 +1,7 @@
 import { Injectable, signal, computed } from '@angular/core';
 import { TokenData } from '../models/token.model';
 import { ImageStorageService } from './image-storage.service';
+import { IndexedDbStorageService } from './indexeddb-storage.service';
 
 interface CampaignTokenStore {
   [campaignId: string]: TokenData[];
@@ -10,6 +11,7 @@ interface CampaignTokenStore {
   providedIn: 'root'
 })
 export class TokenService {
+  private readonly storageKey = 'vtt_tokens';
   // Full token database, grouped by campaign id.
   private store = signal<CampaignTokenStore>({});
 
@@ -24,7 +26,10 @@ export class TokenService {
     return this.store()[id] || [];
   });
 
-  constructor(private readonly imageStorage: ImageStorageService) {
+  constructor(
+    private readonly imageStorage: ImageStorageService,
+    private readonly dbStorage: IndexedDbStorageService
+  ) {
     void this.load();
   }
 
@@ -92,8 +97,8 @@ export class TokenService {
     }
   }
 
-  // Persist token store to localStorage.
-  private save(): void {
+  // Persist token store to IndexedDB (legacy localStorage is migrated).
+  private async save(): Promise<void> {
     const serialized: CampaignTokenStore = {};
 
     Object.entries(this.store()).forEach(([campaignId, tokens]) => {
@@ -103,16 +108,16 @@ export class TokenService {
       }));
     });
 
-    localStorage.setItem('vtt_tokens', JSON.stringify(serialized));
+    await this.dbStorage.set(this.storageKey, serialized);
   }
 
-  // Load token store from localStorage.
+  // Load token store from IndexedDB (legacy localStorage is migrated).
   private async load(): Promise<void> {
     try {
-      const raw = localStorage.getItem('vtt_tokens');
-      if (!raw) return;
-
-      const parsed = JSON.parse(raw) as CampaignTokenStore;
+      // Migrate legacy token payload from localStorage into IndexedDB once.
+      const migrated = await this.dbStorage.migrateJsonFromLocalStorage<CampaignTokenStore>(this.storageKey);
+      const parsed = migrated ?? (await this.dbStorage.get<CampaignTokenStore>(this.storageKey));
+      if (!parsed) return;
       const hydrated: CampaignTokenStore = {};
 
       for (const [campaignId, tokens] of Object.entries(parsed)) {
@@ -141,7 +146,7 @@ export class TokenService {
       }
 
       this.store.set(hydrated);
-      this.save();
+      await this.save();
     } catch {}
   }
 }
