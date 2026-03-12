@@ -1,0 +1,22 @@
+{
+  "name": "Human",
+  "description": "A versatile and ambitious people, humans are the most common race in many worlds.",
+  "abilityScoreIncrease": {
+    "strength": 1,
+    "dexterity": 1,
+    "constitution": 1,
+    "intelligence": 1,
+    "wisdom": 1,
+    "charisma": 1
+  },
+  "size": "Medium",
+  "speed": 30,
+  "proficiencies": [],
+  "traits": [
+    {
+      "name": "Extra Language",
+      "description": "You can speak, read, and write one extra language of your choice."
+    }
+  ],
+  "languages": ["Common"]
+}
