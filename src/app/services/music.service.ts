@@ -1,4 +1,5 @@
 import { Injectable, signal, computed } from '@angular/core';
+import { IndexedDbStorageService } from './indexeddb-storage.service';
 
 interface MusicTrack {
   id: string;
@@ -14,6 +15,8 @@ interface CampaignMusicStore {
 @Injectable({ providedIn: 'root' })
 export class MusicService {
 
+  private readonly storageKey = 'vtt_music';
+
   private store = signal<CampaignMusicStore>({});
   private activeCampaign = signal<string | null>(null);
 
@@ -23,8 +26,8 @@ export class MusicService {
     return this.store()[id] || [];
   });
 
-  constructor() {
-    this.load();
+  constructor(private readonly dbStorage: IndexedDbStorageService) {
+    void this.load();
   }
 
   setCampaign(id: string | null): void {
@@ -72,14 +75,17 @@ remove(trackId: string): void {
     return match ? match[1] : null;
   }
 
-  private save(): void {
-    localStorage.setItem('vtt_music', JSON.stringify(this.store()));
+  private async save(): Promise<void> {
+    // Persist the latest music library in IndexedDB.
+    await this.dbStorage.set(this.storageKey, this.store());
   }
 
-  private load(): void {
+  private async load(): Promise<void> {
     try {
-      const raw = localStorage.getItem('vtt_music');
-      if (raw) this.store.set(JSON.parse(raw));
+      // Migrate legacy localStorage music payload into IndexedDB once.
+      const migrated = await this.dbStorage.migrateJsonFromLocalStorage<CampaignMusicStore>(this.storageKey);
+      const stored = migrated ?? (await this.dbStorage.get<CampaignMusicStore>(this.storageKey));
+      if (stored) this.store.set(stored);
     } catch {}
   }
 }

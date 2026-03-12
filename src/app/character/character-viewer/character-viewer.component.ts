@@ -24,29 +24,28 @@ export class CharacterViewerComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
-    this.loadCharacters();
-    this.restoreSelection();
+    void this.loadCharacters().then(() => this.restoreSelection());
   }
 
-  loadCharacters(): void {
-    this.characters = this.persistenceService.loadCharacters();
+  private async loadCharacters(): Promise<void> {
+    this.characters = await this.persistenceService.loadCharacters();
   }
 
   viewCharacter(id: string): void {
     this.selectedCharacter = this.characters.find(char => char.id === id);
-    this.persistenceService.saveViewerSelectedCharacterId(this.selectedCharacter?.id ?? null);
+    void this.persistenceService.saveViewerSelectedCharacterId(this.selectedCharacter?.id ?? null);
   }
 
-  private restoreSelection(): void {
-    const selectedId = this.persistenceService.loadViewerSelectedCharacterId();
+  private async restoreSelection(): Promise<void> {
+    const selectedId = await this.persistenceService.loadViewerSelectedCharacterId();
     if (!selectedId) {
       this.selectedCharacter = this.characters[0];
-      this.persistenceService.saveViewerSelectedCharacterId(this.selectedCharacter?.id ?? null);
+      await this.persistenceService.saveViewerSelectedCharacterId(this.selectedCharacter?.id ?? null);
       return;
     }
 
     this.selectedCharacter = this.characters.find(char => char.id === selectedId) ?? this.characters[0];
-    this.persistenceService.saveViewerSelectedCharacterId(this.selectedCharacter?.id ?? null);
+    await this.persistenceService.saveViewerSelectedCharacterId(this.selectedCharacter?.id ?? null);
   }
 
   getAbilityModifier(score: number): string {
@@ -61,14 +60,16 @@ export class CharacterViewerComponent implements OnInit {
 
   deleteCharacter(id: string): void {
     if (confirm('Are you sure you want to delete this character?')) {
-      this.characters = this.persistenceService.deleteCharacter(id);
+      void this.persistenceService.deleteCharacter(id).then((updated) => {
+        this.characters = updated;
 
-      if (this.selectedCharacter?.id === id) {
-        this.selectedCharacter = this.characters[0];
-      }
+        if (this.selectedCharacter?.id === id) {
+          this.selectedCharacter = this.characters[0];
+        }
 
-      this.persistenceService.saveViewerSelectedCharacterId(this.selectedCharacter?.id ?? null);
-      alert('Character deleted successfully!');
+        void this.persistenceService.saveViewerSelectedCharacterId(this.selectedCharacter?.id ?? null);
+        alert('Character deleted successfully!');
+      });
     }
   }
 

@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Character } from '../models/character.model';
+import { IndexedDbStorageService } from './indexeddb-storage.service';
 
 interface CharactersStoreV2 {
   version: 2;
@@ -29,92 +30,92 @@ export class PersistenceService {
   private readonly creatorDraftKey = 'ttrpg.creator.draft.v1';
   private readonly viewerUiStateKey = 'ttrpg.viewer.ui.v1';
 
-  loadCharacters(): Character[] {
-    const v2 = this.parseJson<CharactersStoreV2>(this.charactersV2Key);
+  constructor(private readonly dbStorage: IndexedDbStorageService) {}
+
+  async loadCharacters(): Promise<Character[]> {
+    const v2 = await this.parseJson<CharactersStoreV2>(this.charactersV2Key);
     if (v2?.version === 2 && Array.isArray(v2.characters)) {
       return v2.characters;
     }
 
-    const legacy = this.parseJson<Character[]>(this.legacyCharactersKey);
+    const legacy = await this.parseJson<Character[]>(this.legacyCharactersKey);
     if (Array.isArray(legacy)) {
-      this.saveCharacters(legacy);
-      localStorage.removeItem(this.legacyCharactersKey);
+      await this.saveCharacters(legacy);
+      await this.dbStorage.remove(this.legacyCharactersKey);
       return legacy;
     }
 
     return [];
   }
 
-  saveCharacters(characters: Character[]): void {
+  async saveCharacters(characters: Character[]): Promise<void> {
     const payload: CharactersStoreV2 = {
       version: 2,
       updatedAt: new Date().toISOString(),
       characters,
       rulesetsSupported: ['2014', '2024']
     };
-    localStorage.setItem(this.charactersV2Key, JSON.stringify(payload));
+    await this.dbStorage.set(this.charactersV2Key, payload);
   }
 
-  appendCharacter(character: Character): void {
-    const current = this.loadCharacters();
+  async appendCharacter(character: Character): Promise<void> {
+    const current = await this.loadCharacters();
     current.push(character);
-    this.saveCharacters(current);
+    await this.saveCharacters(current);
   }
 
-  deleteCharacter(id: string): Character[] {
-    const updated = this.loadCharacters().filter((char) => char.id !== id);
-    this.saveCharacters(updated);
+  async deleteCharacter(id: string): Promise<Character[]> {
+    const updated = (await this.loadCharacters()).filter((char) => char.id !== id);
+    await this.saveCharacters(updated);
     return updated;
   }
 
-  saveCreatorDraft(draft: Omit<CreatorDraftV1, 'version' | 'savedAt'>): void {
+  async saveCreatorDraft(draft: Omit<CreatorDraftV1, 'version' | 'savedAt'>): Promise<void> {
     const payload: CreatorDraftV1 = {
       version: 1,
       currentStep: draft.currentStep,
       formValue: draft.formValue,
       savedAt: new Date().toISOString()
     };
-    localStorage.setItem(this.creatorDraftKey, JSON.stringify(payload));
+    await this.dbStorage.set(this.creatorDraftKey, payload);
   }
 
-  loadCreatorDraft(): CreatorDraftV1 | null {
-    const draft = this.parseJson<CreatorDraftV1>(this.creatorDraftKey);
+  async loadCreatorDraft(): Promise<CreatorDraftV1 | null> {
+    const draft = await this.parseJson<CreatorDraftV1>(this.creatorDraftKey);
     if (!draft || draft.version !== 1 || typeof draft.currentStep !== 'number') {
       return null;
     }
     return draft;
   }
 
-  clearCreatorDraft(): void {
-    localStorage.removeItem(this.creatorDraftKey);
+  async clearCreatorDraft(): Promise<void> {
+    await this.dbStorage.remove(this.creatorDraftKey);
   }
 
-  saveViewerSelectedCharacterId(selectedCharacterId: string | null): void {
+  async saveViewerSelectedCharacterId(selectedCharacterId: string | null): Promise<void> {
     const payload: ViewerUiStateV1 = {
       version: 1,
       selectedCharacterId
     };
-    localStorage.setItem(this.viewerUiStateKey, JSON.stringify(payload));
+    await this.dbStorage.set(this.viewerUiStateKey, payload);
   }
 
-  loadViewerSelectedCharacterId(): string | null {
-    const state = this.parseJson<ViewerUiStateV1>(this.viewerUiStateKey);
+  async loadViewerSelectedCharacterId(): Promise<string | null> {
+    const state = await this.parseJson<ViewerUiStateV1>(this.viewerUiStateKey);
     if (!state || state.version !== 1) {
       return null;
     }
     return state.selectedCharacterId;
   }
 
-  private parseJson<T>(key: string): T | null {
-    const raw = localStorage.getItem(key);
-    if (!raw) {
-      return null;
+  private async parseJson<T>(key: string): Promise<T | null> {
+    // First time: migrate localStorage content to IndexedDB so future reads use IDB.
+    const migrated = await this.dbStorage.migrateJsonFromLocalStorage<T>(key);
+    if (migrated !== null) {
+      return migrated;
     }
 
-    try {
-      return JSON.parse(raw) as T;
-    } catch {
-      return null;
-    }
+    const stored = await this.dbStorage.get<T>(key);
+    return stored ?? null;
   }
 }

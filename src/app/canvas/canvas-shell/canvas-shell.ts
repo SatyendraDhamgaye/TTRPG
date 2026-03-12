@@ -40,21 +40,24 @@ export class CanvasShellComponent {
   }
 
   // Resolve campaign context on shell load.
-  ngOnInit() {
+  ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id');
     this.campaignId = id;
 
     if (id) {
-      const camp = this.store.get(id);
-      this.campaignName = camp?.name || id;
+      void this.store.get(id).then((camp) => {
+        this.campaignName = camp?.name || id;
+      });
     }
   }
 
   onGridSizeChange(size: number): void {
     this.gridSize = size;
-    this.mapService.setActiveMapGridSize(size);
+    void this.mapService.setActiveMapGridSize(size);
   }
 }
+
+
 
 
 

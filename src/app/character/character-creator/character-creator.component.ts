@@ -51,7 +51,7 @@ export class CharacterCreatorComponent implements OnInit {
     });
 
     this.applyStandardArrayPreset();
-    this.restoreDraft();
+    void this.restoreDraft();
 
     this.compendiumService.getRaces().subscribe(races => {
       this.races = races;
@@ -76,7 +76,7 @@ export class CharacterCreatorComponent implements OnInit {
     });
 
     this.characterForm.valueChanges.subscribe(() => {
-      this.saveDraft();
+      void this.saveDraft();
     });
   }
 
@@ -191,15 +191,15 @@ export class CharacterCreatorComponent implements OnInit {
     this.selectedClass = this.classes.find((cls) => cls.name === className);
   }
 
-  private saveDraft(): void {
-    this.persistenceService.saveCreatorDraft({
+  private async saveDraft(): Promise<void> {
+    await this.persistenceService.saveCreatorDraft({
       currentStep: this.currentStep,
       formValue: this.characterForm.getRawValue()
     });
   }
 
-  private restoreDraft(): void {
-    const draft = this.persistenceService.loadCreatorDraft();
+  private async restoreDraft(): Promise<void> {
+    const draft = await this.persistenceService.loadCreatorDraft();
     if (!draft) {
       return;
     }
@@ -279,12 +279,12 @@ export class CharacterCreatorComponent implements OnInit {
         break;
     }
     this.currentStep++;
-    this.saveDraft();
+    void this.saveDraft();
   }
 
   previousStep(): void {
     this.currentStep--;
-    this.saveDraft();
+    void this.saveDraft();
   }
 
   saveCharacter(): void {
@@ -336,7 +336,7 @@ export class CharacterCreatorComponent implements OnInit {
         languages: this.selectedRace?.languages || [],
       };
 
-      this.persistenceService.appendCharacter(newCharacter);
+      void this.persistenceService.appendCharacter(newCharacter);
 
       console.log('Character saved successfully!', newCharacter);
       alert('Character saved successfully!');
@@ -350,12 +350,12 @@ export class CharacterCreatorComponent implements OnInit {
       this.selectedRace = undefined;
       this.selectedClass = undefined;
       this.abilityMethodError = '';
-      this.persistenceService.clearCreatorDraft();
+      void this.persistenceService.clearCreatorDraft();
     } else {
       console.log('Form is invalid. Please complete all required fields.');
       alert('Please complete all required fields and ensure ability scores are valid.');
       // Optionally, navigate to the first invalid step
-      this.saveDraft();
+      void this.saveDraft();
     }
   }
 }

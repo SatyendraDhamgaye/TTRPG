@@ -132,7 +132,7 @@ createMap(): void {
     return;
   }
 
-  this.mapService.create(this.mapName, this.mapImage());
+  void this.mapService.create(this.mapName, this.mapImage());
 
   this.mapName = '';
   this.mapImage.set('');
@@ -147,7 +147,7 @@ activateMap(id: string): void {
 }
 
 deleteMap(id: string): void {
-  this.mapService.delete(id);
+  void this.mapService.delete(id);
 }
 
 ngOnChanges(changes: SimpleChanges): void {
@@ -629,7 +629,7 @@ onFile(event: Event): void {
       campaignId: this.campaignId ?? undefined
     };
 
-    this.tokenService.add(token);
+    void this.tokenService.add(token);
 
     this.name = '';
     this.size = 'medium';
@@ -652,7 +652,7 @@ onFile(event: Event): void {
 
   // Remove a custom token from current campaign library.
   delete(id: string): void {
-    this.tokenService.remove(id);
+    void this.tokenService.remove(id);
   }
 
   // Begin drag operation for an existing token.

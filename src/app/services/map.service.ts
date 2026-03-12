@@ -1,11 +1,13 @@
 import { Injectable, signal, computed } from '@angular/core';
 import { GameMap } from '../models/map.model';
 import { ImageStorageService } from './image-storage.service';
+import { IndexedDbStorageService } from './indexeddb-storage.service';
 
 @Injectable({ providedIn: 'root' })
 export class MapService {
 
   private readonly STORAGE_KEY = 'vtt-maps';
+  private readonly legacyCampaignMapKey = 'vtt-camp-map';
   private readonly defaultGridSize = 100;
 
   // All maps (all campaigns)
@@ -34,7 +36,10 @@ export class MapService {
     ) || null;
   });
 
-  constructor(private readonly imageStorage: ImageStorageService) {
+  constructor(
+    private readonly imageStorage: ImageStorageService,
+    private readonly dbStorage: IndexedDbStorageService
+  ) {
     void this.loadFromStorage();
   }
 
@@ -52,11 +57,18 @@ export class MapService {
   // ===============================
 
   private async loadFromStorage(): Promise<void> {
-    const raw = localStorage.getItem(this.STORAGE_KEY);
-    if (!raw) return;
-
     try {
-      const parsed: GameMap[] = JSON.parse(raw);
+      // Migrate any legacy map payload stored in localStorage.
+      const migrated = await this.dbStorage.migrateJsonFromLocalStorage<GameMap[]>(this.STORAGE_KEY);
+      const parsed = migrated ?? (await this.dbStorage.get<GameMap[]>(this.STORAGE_KEY));
+      if (!parsed) {
+        // Additional legacy key support (vtt-camp-map) if present in old builds.
+        const legacyCampMap = await this.dbStorage.migrateJsonFromLocalStorage<GameMap[]>(this.legacyCampaignMapKey);
+        if (legacyCampMap) {
+          await this.dbStorage.set(this.STORAGE_KEY, legacyCampMap);
+        }
+        return;
+      }
 
       const resolved = await Promise.all(
         parsed.map(async (map) => {
@@ -85,22 +97,19 @@ export class MapService {
       );
 
       this._maps.set(resolved);
-      this.saveToStorage();
+      await this.saveToStorage();
     } catch {
       this._maps.set([]);
     }
   }
 
-  private saveToStorage(): void {
+  private async saveToStorage(): Promise<void> {
     const serialized = this._maps().map((map) => ({
       ...map,
       image: map.imageId ? '' : map.image
     }));
 
-    localStorage.setItem(
-      this.STORAGE_KEY,
-      JSON.stringify(serialized)
-    );
+    await this.dbStorage.set(this.STORAGE_KEY, serialized);
   }
 
   // ===============================
@@ -128,7 +137,7 @@ export class MapService {
     };
 
     this._maps.update(prev => [...prev, newMap]);
-    this.saveToStorage();
+    await this.saveToStorage();
 
     console.log('Creating map for campaign:', campaignId);
 
@@ -146,7 +155,7 @@ export class MapService {
       this._activeMapId.set(null);
     }
 
-    this.saveToStorage();
+    await this.saveToStorage();
   }
 
   setActive(id: string): void {
@@ -157,7 +166,7 @@ export class MapService {
     this._activeMapId.set(null);
   }
 
-  setActiveMapGridSize(size: number): void {
+  async setActiveMapGridSize(size: number): Promise<void> {
     const activeId = this._activeMapId();
     const campaignId = this._campaignId();
     if (!activeId || !campaignId || !Number.isFinite(size)) {
@@ -174,6 +183,6 @@ export class MapService {
       })
     );
 
-    this.saveToStorage();
+    await this.saveToStorage();
   }
 }
