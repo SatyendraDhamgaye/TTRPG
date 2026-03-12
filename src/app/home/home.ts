@@ -11,7 +11,8 @@ import { CampaignStorageService } from '../campaign-storage.service';
   selector: 'app-home',
   standalone: true,
   imports: [CommonModule, FormsModule],
-  templateUrl: './home.html'
+  templateUrl: './home.html',
+  styleUrl: './home.scss'
 })
 export class HomeComponent implements OnInit {
   name = '';

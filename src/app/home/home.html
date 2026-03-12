@@ -1,68 +1,106 @@
 <div class="home-wrapper">
+  <header class="hero">
+    <div class="hero-content">
+      <p class="kicker">Campaign Lobby</p>
+      <h1>Arcane Tabletop</h1>
+      <p class="subtitle">
+        Gather your party, launch a new adventure, or return to a campaign in progress.
+      </p>
 
-  <div class="top">
-    <h1>Arcane Tabletop</h1>
+      <div class="hero-actions">
+        <button class="new" (click)="showCreate = !showCreate">
+          + New Game
+        </button>
+        <button class="ghost" type="button" (click)="showCreate = !showCreate">
+          Quick start
+        </button>
+      </div>
+    </div>
 
-    <button class="new" (click)="showCreate = !showCreate">
-      + New Game
-    </button>
-  </div>
+    <div class="hero-visual">
+      <div class="hero-orb"></div>
+      <img class="hero-image" src="/default-cover.jpg" alt="Campaign cover">
+      <div class="hero-frame"></div>
+      <div class="hero-glow"></div>
+    </div>
+  </header>
 
   <!-- CREATE -->
-<div class="create" *ngIf="showCreate">
-  <input [(ngModel)]="name" placeholder="Game name">
-  <input [(ngModel)]="description" placeholder="Description">
+  <div class="create" *ngIf="showCreate">
+    <div class="create-header">
+      <div>
+        <h2>Start a new campaign</h2>
+        <p>Set the tone, drop your hooks, and invite your table to begin.</p>
+      </div>
+      <span class="pill">D&amp;D 5e</span>
+    </div>
 
-  <button (click)="create(); showCreate = false">
-    Create
-  </button>
-</div>
+    <div class="create-fields">
+      <label>
+        <span>Game name</span>
+        <input [(ngModel)]="name" placeholder="Crimson Vale, Nightfall Guild...">
+      </label>
+      <label>
+        <span>Description</span>
+        <input [(ngModel)]="description" placeholder="Campaign theme, setting, or goals">
+      </label>
+    </div>
 
+    <div class="create-actions">
+      <button class="ghost" type="button" (click)="showCreate = false">Cancel</button>
+      <button class="primary" (click)="create(); showCreate = false">Create Campaign</button>
+    </div>
+  </div>
 
   <!-- LIST -->
-  <div class="games">
-
-    <div class="card" *ngFor="let c of campaigns">
-
-      <div class="left">
-        <img class="thumb"
-     [src]="c.cover || 'assets/default-cover.jpg'">
-
+  <section class="games">
+    <div class="section-header">
+      <div>
+        <h2>Your campaigns</h2>
+        <p class="section-subtitle">Jump back into your worlds or spin up a new saga.</p>
       </div>
+      <span class="count">{{ campaigns.length }} total</span>
+    </div>
 
-      <div class="mid">
+    <div class="card-grid">
+      <div class="card" *ngFor="let c of campaigns">
+        <div class="card-media">
+          <img class="thumb" [src]="c.cover || '/default-cover.jpg'">
+          <span class="card-tag">Active</span>
+        </div>
 
-        <div class="title">{{ c.name }}</div>
+        <div class="card-body">
+          <div class="title">{{ c.name }}</div>
 
-        <div class="row">
+          <p class="desc">
+            {{ c.description || 'Add a short campaign synopsis to set the mood.' }}
+          </p>
+
+          <div class="meta">
+            Last played {{ c.lastOpened | date:'shortDate' }}
+          </div>
+        </div>
+
+        <div class="card-actions">
           <button class="launch" (click)="open(c)">
             ▶ Launch Game
           </button>
-
-          <span class="badge">Creator</span>
+          <button class="ghost" (click)="delete(c)">Delete</button>
         </div>
-
-        <div class="meta">
-          Last Played On {{ c.lastOpened | date:'shortDate' }}
-        </div>
-
-        <div class="desc">
-          {{ c.description }}
-        </div>
-
       </div>
-
-      <div class="right">
-        <button class="ghost" (click)="delete(c)">Delete</button>
-      </div>
-
     </div>
-
-  </div>
+  </section>
 
   <div class="empty" *ngIf="campaigns.length === 0">
-  No campaigns yet. Create your first game 💫
+    <div class="empty-card">
+      <div class="empty-icon">✨</div>
+      <h2>No campaigns yet</h2>
+      <p>Create your first campaign and invite your party to play.</p>
+      <button class="primary" (click)="showCreate = true">Create first campaign</button>
+    </div>
+  </div>
 </div>
 
-</div>
+
+
 
