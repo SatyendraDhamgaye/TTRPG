@@ -19,7 +19,7 @@
 
     <div class="hero-visual">
       <div class="hero-orb"></div>
-      <img class="hero-image" src="/default-cover.jpg" alt="Campaign cover">
+      <img class="hero-image" src="./default-cover.jpg" alt="Campaign cover">
       <div class="hero-frame"></div>
       <div class="hero-glow"></div>
     </div>
@@ -65,7 +65,7 @@
     <div class="card-grid">
       <div class="card" *ngFor="let c of campaigns">
         <div class="card-media">
-          <img class="thumb" [src]="c.cover || '/default-cover.jpg'">
+          <img class="thumb" [src]="c.cover || './default-cover.jpg'">
           <span class="card-tag">Active</span>
         </div>
 

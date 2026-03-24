@@ -25,7 +25,7 @@ export class CampaignStorageService {
 
   private randomCover(): string {
     const n = Math.floor(Math.random() * 6) + 1;
-    return `/covers/${n}.jpg`;
+    return `./covers/${n}.jpg`;
   }
 
   async create(name: string, description: string): Promise<Campaign> {
