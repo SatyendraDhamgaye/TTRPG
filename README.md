@@ -1,59 +1,131 @@
-# VttLocal
+# 🧙‍♂️ TTRPG Character Builder (Angular Standalone App)
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.1.2.
+A modern, fully standalone Angular application for creating and managing
+TTRPG (D&D 5e-inspired) characters. Built with performance, scalability,
+and clean architecture in mind---without using traditional Angular
+modules.
 
-## Development server
+------------------------------------------------------------------------
 
-To start a local development server, run:
+## ✨ Features
 
-```bash
-ng serve
-```
+-   ⚡ Standalone Angular Architecture (no app.module.ts)
+-   🧾 Dynamic Character Creation Flow
+-   🧠 Signal-based State Management
+-   🎨 Clean UI with Component Isolation
+-   🧩 Modular Component Design (kebab-case structure)
+-   📱 Responsive Layout with Sidebar Navigation
+-   🎭 Designed for TTRPG / D&D-style characters
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+------------------------------------------------------------------------
 
-## Code scaffolding
+## 🏗️ Tech Stack
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+-   Angular 20+ (Standalone Components)
+-   TypeScript
+-   Angular Signals
+-   Custom CSS
 
-```bash
-ng generate component component-name
-```
+------------------------------------------------------------------------
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+## 📁 Project Structure
 
-```bash
-ng generate --help
-```
+    src/
+    │
+    ├── app/
+    │   ├── basic-info/
+    │   │   ├── basic-info.ts
+    │   │   ├── basic-info.html
+    │   │   └── basic-info.css
+    │   │
+    │   ├── side-nav/
+    │   ├── top-navbar/
+    │   ├── hero/
+    │   │
+    │   ├── services/
+    │   │   └── character.ts
+    │   │
+    │   ├── app.ts
+    │   ├── app.html
+    │   └── app.css
+    │
+    └── public/
+        └── compendium/
+            └── monsters/
 
-## Building
+------------------------------------------------------------------------
 
-To build the project run:
+## 🧠 Architecture Overview
 
-```bash
-ng build
-```
+### Standalone Components
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+Each component is self-contained and manages its own imports, improving
+scalability and maintainability.
 
-## Running unit tests
+### Signals for State Management
 
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
+Uses Angular Signals for reactive and efficient state handling without
+heavy RxJS usage.
 
-```bash
-ng test
-```
+------------------------------------------------------------------------
 
-## Running end-to-end tests
+## 🎮 Core Features
 
-For end-to-end (e2e) testing, run:
+### Basic Info Screen
 
-```bash
-ng e2e
-```
+-   Character name
+-   Race selection
+-   Class selection
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+### Navigation
 
-## Additional Resources
+-   Sidebar-based multi-step navigation
 
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+### Hero Section
+
+-   Intro / visual section for character overview
+
+### Marquee Section
+
+-   Animated strip for showcasing text or features
+
+------------------------------------------------------------------------
+
+## ⚙️ Performance Notes
+
+Large asset folders (like monster compendium) may slow deployment.
+Recommended:
+
+-   Lazy loading assets
+-   Image compression
+-   External hosting (CDN)
+
+------------------------------------------------------------------------
+
+## 🚀 Getting Started
+
+### Install
+
+    npm install
+
+### Run
+
+    ng serve
+
+Open http://localhost:4200
+
+------------------------------------------------------------------------
+
+## 🧪 Future Improvements
+
+-   Full character sheet system
+-   Dice rolling mechanics
+-   Save/load functionality
+-   API integration
+-   Combat system
+
+------------------------------------------------------------------------
+
+## 📜 License
+
+MIT License
